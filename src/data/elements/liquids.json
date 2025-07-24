@@ -1,0 +1,111 @@
+{
+  "sulphuric_acid": {
+    "intrinsic_properties": {
+      "id": "sulphuric_acid",
+      "symbol": "H2SO4",
+      "mass": 98.08,
+      "density": 1.84,
+      "state": "liquid",
+      "color": [0.8, 0.8, 0.6, 0.9],
+      "radius": 1.0,
+      "specific_heat": 1.4,
+      "heat_conductivity": 0.3,
+      "electrical_conductivity": 1e2,
+      "elasticity": 0.0,
+      "friction": 0.2,
+      "phase_transitions": {
+        "boiling": [
+          { "pressure": 1.0, "temperature": 337.0 },
+          { "pressure": 10.0, "temperature": 350.0 }
+        ],
+        "freezing": [
+          { "pressure": 1.0, "temperature": 10.0 },
+          { "pressure": 100.0, "temperature": 5.0 }
+        ]
+      }
+    },
+    "dynamic_properties": {
+      "temperature": 20.0,
+      "pressure": 1.0,
+      "velocity": [0.0, 0.0],
+      "acceleration": [0.0, 0.01],
+      "energy": 0.0,
+      "state": "liquid",
+      "current": 0.0,
+      "burning": false,
+      "burn_progress": 0.0
+    },
+    "interaction_properties": {
+      "reactivity": {
+        "thresholds": {
+          "temperature": [0, 500],
+          "pressure": [0.1, 50.0],
+          "energy": [0.0, 1000.0]
+        },
+        "compatibility": {
+          "blood": {
+            "reaction_probability": 0.9,
+            "energy_release": 60.0,
+            "force_magnitude": 3.0,
+            "blast_radius": 1.5,
+            "reaction_rate": "lambda T: 0.001 * math.exp(-4000 / (8.314 * (T + 273.15)))",
+            "deltas": {
+              "self": {
+                "temperature": "+30",
+                "mass": "-0.3",
+                "pressure": "+3.0"
+              },
+              "neighbor": {
+                "state": "solid",
+                "temperature": "+20",
+                "mass": "-0.5",
+                "pressure": "+2.0"
+              }
+            },
+            "products": [
+              { "id": "denatured_blood", "amount": 0.5, "state": "solid" }
+            ]
+          },
+          "iron": {
+            "reaction_probability": 0.8,
+            "energy_release": 40.0,
+            "force_magnitude": 1.0,
+            "blast_radius": 1.0,
+            "reaction_rate": "lambda T: 0.001 * math.exp(-4500 / (8.314 * (T + 273.15)))",
+            "deltas": {
+              "self": {
+                "temperature": "+15",
+                "mass": "-0.2",
+                "pressure": "+1.0"
+              },
+              "neighbor": {
+                "mass": "-0.3"
+              }
+            },
+            "products": [
+              { "id": "iron_sulphate", "amount": 0.4, "state": "solid" }
+            ]
+          }
+        }
+      },
+      "propagation": {
+        "heat_conduction_rate": 0.2,
+        "electrical_conduction_rate": 0.3,
+        "pressure_transfer_rate": 0.3,
+        "force_dissipation": 0.9,
+        "phase_change_effects": {
+          "boiling": {
+            "pressure": "+2.0",
+            "temperature": "+30",
+            "current": "+0.05"
+          },
+          "freezing": {
+            "pressure": "+0.5",
+            "temperature": "-10",
+            "current": "-0.02"
+          }
+        }
+      }
+    }
+  }
+}

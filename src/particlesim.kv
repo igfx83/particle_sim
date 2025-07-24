@@ -1,0 +1,123 @@
+#:import Factory kivy.factory.Factory
+FloatLayout:
+    SimulationGrid:
+        id: simulation_grid
+        size_hint: .9, .9
+        pos_hint: {'x': 0, 'top': 1}
+
+    BoxLayout:
+        orientation: "horizontal"
+        size_hint: 1, 0.1
+        pos_hint: {'top': 0.1, 'left': 0}
+        RippleButton:
+            text: "Picker"
+            size_hint: 0.2, .75
+            size_hint_max_x: 150
+            pos_hint: {'x': 0, 'center_y': 0.5}
+
+    BoxLayout:
+        orientation: "vertical"
+        size_hint: 0.1, 1
+        pos_hint: {'right': 1, 'top': 1}
+
+    RelativeLayout:
+        id: scene_graph
+        size_hint: .9, .9
+        pos_hint: {'x': 0, 'top': 1}
+        canvas.after:
+            Color:
+                rgba: 0.8, 0.8, 0.8, 1
+            Line:
+                rectangle: self.x, self.y, self.width, root.height
+                width: 1
+
+<BackgroundColor@Widget>
+    background_color: 1, 1, 1, 1
+    canvas.before:
+        Color:
+            rgba: root.background_color
+        Rectangle:
+            size: self.size
+            pos: self.pos
+
+<TableHead@Label+BackgroundColor>
+    background_color: .42, .35, .24, 1
+    font_size: 20
+    size_hint_y: None
+    height: 40
+    size_hint_x: None
+    width: 120
+    text_size: self.size
+    halign: 'center'
+    valign: 'middle'
+    canvas.after:
+        Color:
+            rgba: 1, 1, 1, 1
+        Line:
+            rectangle: self.x, self.y, self.width, self.height
+            width: 1
+
+<PickerLabel@Label>
+    font_size: 16
+    size_hint_y: None
+    height: 30
+    size_hint_x: None
+    width: 120
+    text_size: self.size
+    halign: 'center'
+    valign: 'middle'
+    canvas.before:
+        Color:
+            rgba: self.background_color
+        Rectangle:
+            size: self.size
+            pos: self.pos
+    canvas.after:
+        Color:
+            rgba: 1, 1, 1, 1
+        Line:
+            rectangle: self.x, self.y, self.width, self.height
+            width: 1
+
+<PickerModal>:
+    id: picker_modal
+    size_hint: .9, .9
+    pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+    auto_dismiss: True
+    background: ""
+    overlay_color: [0, 0, 0, 0.5]
+    TabbedPanel:
+        do_default_tab: False
+
+        TabbedPanelItem:
+            text: "Elements"
+            ScrollView:
+                # Enable horizontal scrolling
+                do_scroll_x: True
+                # Enable vertical scrolling
+                do_scroll_y: True
+                GridLayout:
+                    id: picker_table 
+                    # Will be set dynamically in Python
+                    cols: 1
+                    # Allow GridLayout to size based on content
+                    size_hint: None, None
+                    # Set width to fit all columns
+                    width: self.minimum_width
+                    # Set height to fit all rows
+                    height: self.minimum_height
+                    spacing: 2
+                    padding: 5
+
+        TabbedPanelItem:
+            text: "Settings"
+            BoxLayout:
+                orientation: "vertical"
+                size_hint: 1, 1
+                Label:
+                    text: "Settings go here"
+                    size_hint: 1, 0.9
+                Button:
+                    text: "Close"
+                    size_hint: 1, 0.1
+                    on_release: picker_modal.dismiss()
