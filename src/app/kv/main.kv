@@ -4,6 +4,33 @@ FloatLayout:
         id: simulation_grid
         size_hint: .9, .9
         pos_hint: {'x': 0, 'top': 1}
+        cursor: simulation_cursor
+        on_touch_down: simulation_cursor.on_grid_touch_down(self, args[1])
+        on_touch_move: simulation_cursor.on_grid_touch_move(self, args[1])
+
+    SimulationCursor:
+        id: simulation_cursor
+        size_hint: None, None
+        size: 10, 10
+        pos: 0, 0
+        shape: 'ellipse'
+        cursor_width: 10
+        cursor_height: 10
+
+    Label:
+        id: hud_label
+        size_hint: None, None
+        size: 200, 100
+        pos_hint: {'top': 1, 'right': 1}
+        text: ""
+        font_size: 14
+        color: 1, 1, 1, 1
+        canvas.before:
+            Color:
+                rgba: 0, 0, 0, 0.7
+            Rectangle:
+                pos: self.pos
+                size: self.size
 
     BoxLayout:
         orientation: "horizontal"
@@ -14,6 +41,31 @@ FloatLayout:
             size_hint: 0.2, .75
             size_hint_max_x: 150
             pos_hint: {'x': 0, 'center_y': 0.5}
+        Button:
+            text: "Ellipse"
+            size_hint: 0.15, .75
+            pos_hint: {'center_y': 0.5}
+            on_press: simulation_cursor.shape = 'ellipse'
+        Button:
+            text: "Square"
+            size_hint: 0.15, .75
+            pos_hint: {'center_y': 0.5}
+            on_press: simulation_cursor.shape = 'square'
+        Button:
+            text: "Triangle"
+            size_hint: 0.15, .75
+            pos_hint: {'center_y': 0.5}
+            on_press: simulation_cursor.shape = 'triangle'
+        Button:
+            text: "Size +"
+            size_hint: 0.15, .75
+            pos_hint: {'center_y': 0.5}
+            on_press: simulation_cursor.cursor_width = simulation_cursor.cursor_height = min(simulation_cursor.cursor_width + 2, 50)
+        Button:
+            text: "Size -"
+            size_hint: 0.15, .75
+            pos_hint: {'center_y': 0.5}
+            on_press: simulation_cursor.cursor_width = simulation_cursor.cursor_height = max(simulation_cursor.cursor_width - 2, 5)
 
     BoxLayout:
         orientation: "vertical"
@@ -32,13 +84,9 @@ FloatLayout:
                 width: 1
 
 <BackgroundColor@Widget>
-    background_color: 1, 1, 1, 1
-    canvas.before:
-        Color:
-            rgba: root.background_color
-        Rectangle:
-            size: self.size
-            pos: self.pos
+    background_color: ColorProperty([1, 1, 1, 1])
+
+
 
 <TableHead@Label+BackgroundColor>
     background_color: .42, .35, .24, 1
@@ -56,8 +104,14 @@ FloatLayout:
         Line:
             rectangle: self.x, self.y, self.width, self.height
             width: 1
+        Color:
+            rgba: 1, 0, 0, 0.5 if root.is_resizing else 0
+        Line:
+            points: [self.x + self.width - 5, self.y, self.x + self.width - 5, self.y + self.height]
+            width: 2 if abs(root.x + root.width - app.root.get_mouse_pos()[0]) < 10 and root.collide_point(*app.root.get_mouse_pos()) else 1
 
 <PickerLabel@Label>
+    background_color: ColorProperty([0.9, 0.9, 0.9, 1])
     font_size: 16
     size_hint_y: None
     height: 30
@@ -78,6 +132,7 @@ FloatLayout:
         Line:
             rectangle: self.x, self.y, self.width, self.height
             width: 1
+    on_touch_down: root.on_color_touch(args[1]) if not self.text else None
 
 <PickerModal>:
     id: picker_modal
@@ -88,27 +143,19 @@ FloatLayout:
     overlay_color: [0, 0, 0, 0.5]
     TabbedPanel:
         do_default_tab: False
-
         TabbedPanelItem:
             text: "Elements"
             ScrollView:
-                # Enable horizontal scrolling
                 do_scroll_x: True
-                # Enable vertical scrolling
                 do_scroll_y: True
                 GridLayout:
-                    id: picker_table 
-                    # Will be set dynamically in Python
+                    id: picker_table
                     cols: 1
-                    # Allow GridLayout to size based on content
                     size_hint: None, None
-                    # Set width to fit all columns
                     width: self.minimum_width
-                    # Set height to fit all rows
                     height: self.minimum_height
                     spacing: 2
                     padding: 5
-
         TabbedPanelItem:
             text: "Settings"
             BoxLayout:
