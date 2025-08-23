@@ -1,4 +1,4 @@
-#:import Factory kivy.factory.Factory
+#import Factory kivy.factory.Factory
 FloatLayout:
     SimulationGrid:
         id: simulation_grid
@@ -34,37 +34,33 @@ FloatLayout:
 
     BoxLayout:
         orientation: "horizontal"
-        size_hint: 1, 0.1
+        size_hint: 1, 0.075
         pos_hint: {'top': 0.1, 'left': 0}
         RippleButton:
             text: "Picker"
             size_hint: 0.2, .75
             size_hint_max_x: 150
             pos_hint: {'x': 0, 'center_y': 0.5}
-        Button:
+            canvas.before:
+                Color:
+                    rgba: 0.2, 0.2, 0.2, 1
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+        ToolbarButton:
             text: "Ellipse"
-            size_hint: 0.15, .75
-            pos_hint: {'center_y': 0.5}
             on_press: simulation_cursor.shape = 'ellipse'
-        Button:
+        ToolbarButton:
             text: "Square"
-            size_hint: 0.15, .75
-            pos_hint: {'center_y': 0.5}
             on_press: simulation_cursor.shape = 'square'
-        Button:
+        ToolbarButton:
             text: "Triangle"
-            size_hint: 0.15, .75
-            pos_hint: {'center_y': 0.5}
             on_press: simulation_cursor.shape = 'triangle'
-        Button:
+        ToolbarButton:
             text: "Size +"
-            size_hint: 0.15, .75
-            pos_hint: {'center_y': 0.5}
             on_press: simulation_cursor.cursor_width = simulation_cursor.cursor_height = min(simulation_cursor.cursor_width + 2, 50)
-        Button:
+        ToolbarButton:
             text: "Size -"
-            size_hint: 0.15, .75
-            pos_hint: {'center_y': 0.5}
             on_press: simulation_cursor.cursor_width = simulation_cursor.cursor_height = max(simulation_cursor.cursor_width - 2, 5)
 
     BoxLayout:
@@ -84,40 +80,43 @@ FloatLayout:
                 width: 1
 
 <BackgroundColor@Widget>
-    background_color: [1, 1, 1, 1]
+    background_color: [0, 0, 0, 1]
 
+<ToolbarButton@Button>
+    size_hint: None, .75
+    pos_hint: {'center_y': 0.5}
+    font_size: 26
 
-
-<TableHead>
-    background_color: .42, .35, .24, 1
-    font_size: 20
-    size_hint_y: None
-    height: 40
-    size_hint_x: None
-    width: 120
-    text_size: self.size
+<DraggableTableHead>:
+    font_size: 26
+    bold: True
+    color: 1, 1, 1, 1
+    size_hint: None, None
+    height: 60
+    text_size: None, None
     halign: 'center'
     valign: 'middle'
+    canvas.before:
+        Color:
+            rgba: 0.5, 0.5, 0.5, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
     canvas.after:
         Color:
-            rgba: 1, 1, 1, 1
+            rgba: 0, 0, 0, 1
         Line:
             rectangle: self.x, self.y, self.width, self.height
             width: 1
-        Color:
-            rgba: 1, 0, 0, 0.5 if root.is_resizing else 0
-        Line:
-            points: [self.x + self.width - 5, self.y, self.x + self.width - 5, self.y + self.height]
-            width: 2 if abs(root.x + root.width - app.root.ids.simulation_cursor.pos[0]) < 10 and root.collide_point(*app.root.ids.simulation_cursor.pos) else 1
 
-<PickerLabel>
+<PickerLabel>:
     background_color: [0.9, 0.9, 0.9, 1]
-    font_size: 16
-    size_hint_y: None
-    height: 30
-    size_hint_x: None
-    width: 120
-    text_size: self.size
+    font_size: 30
+    size_hint: None, None
+    color: 0, 0, 0, 1
+    bold: False
+    height: 40
+    text_size: None, None
     halign: 'center'
     valign: 'middle'
     canvas.before:
@@ -128,11 +127,11 @@ FloatLayout:
             pos: self.pos
     canvas.after:
         Color:
-            rgba: 1, 1, 1, 1
+            rgba: 0, 0, 0, 1
         Line:
             rectangle: self.x, self.y, self.width, self.height
             width: 1
-    on_touch_down: root.on_color_touch(args[1]) if not self.text else None
+  #  on_touch_down: root.on_color_touch(args[1]) if not self.text else None
 
 <PickerModal>:
     id: picker_modal
@@ -151,9 +150,8 @@ FloatLayout:
     TabbedPanel:
         do_default_tab: False
         TabbedPanelItem:
+            id: picker_modal_panel
             text: "Elements"
-            BoxLayout:
-                id: picker_table_container
         TabbedPanelItem:
             text: "Settings"
             BoxLayout:

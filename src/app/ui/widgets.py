@@ -26,7 +26,6 @@ from kivy.uix.widget import Widget
 from scipy.signal import convolve2d
 
 from app.ui.elements import load_elements
-from app.ui.modals.PickerModal import PickerModal
 
 ELEMENTS = load_elements()
 
@@ -37,6 +36,17 @@ class BackgroundColor:
 
 class PickerLabel(Label):
     background_color = ColorProperty([0.9, 0.9, 0.9, 1])
+    index = NumericProperty(0)
+
+    def __init__(self, **kwargs):
+        super(PickerLabel, self).__init__(**kwargs)
+        self.bind(index=self._update_index)
+
+    def _update_index(self, instance, value):
+        column = self.parent
+        if column:
+            column.remove_widget(self)
+            column.add_widget(self, index=value)
 
     def on_color_touch(self, touch):
         if self.collide_point(*touch.pos) and not self.text:
@@ -50,72 +60,6 @@ class PickerLabel(Label):
 
 
 Factory.register("PickerLabel", cls=PickerLabel)
-
-
-class TableHead(Label, BackgroundColor):
-    column = StringProperty("")  # Tracks which column this header belongs to
-    is_dragging = BooleanProperty(False)
-    is_resizing = BooleanProperty(False)
-    drag_start_pos = ListProperty([0, 0])
-
-    def on_touch_down(self, touch):
-        if self.collide_point(*touch.pos):
-            # Check if touch is near the right edge for resizing (within 10 pixels)
-            if abs(touch.pos[0] - (self.x + self.width)) < 10:
-                self.is_resizing = True
-                self.drag_start_pos = touch.pos
-                touch.grab(self)
-                return True
-            # Otherwise, start dragging
-            self.is_dragging = True
-            self.drag_start_pos = touch.pos
-            touch.grab(self)
-            return True
-        return super(TableHead, self).on_touch_down(touch)
-
-    def on_touch_move(self, touch):
-        if touch.grab_current is self:
-            if self.is_resizing:
-                # Resize column
-                delta_x = touch.pos[0] - self.drag_start_pos[0]
-                new_width = max(50, self.width + delta_x)
-                modal = self.parent.parent.parent.parent  # PickerModal
-                if isinstance(modal, PickerModal) and self.column in modal._cols:
-                    for widget in modal._cols[self.column]:
-                        widget.width = new_width
-                    modal.ids.picker_table.width = sum(
-                        modal._cols[prop][0].width for prop in modal._cols
-                    )
-                self.drag_start_pos = touch.pos
-            elif self.is_dragging:
-                # Drag header (visual feedback)
-                self.pos = (touch.pos[0] - self.width / 2, self.y)
-            return True
-        return super(TableHead, self).on_touch_move(touch)
-
-    def on_touch_up(self, touch):
-        if touch.grab_current is self:
-            if self.is_dragging:
-                # Find target column by checking overlap with other headers
-                modal = self.parent.parent.parent.parent
-                if isinstance(modal, PickerModal):
-                    target_column = None
-                    for prop, widgets in modal._cols.items():
-                        if prop != self.column and widgets[0].collide_point(*touch.pos):
-                            target_column = prop
-                            break
-                    if target_column:
-                        modal.reorder_columns(self.column, target_column)
-                self.pos = self._original_pos  # Reset position
-            self.is_dragging = False
-            self.is_resizing = False
-            touch.ungrab(self)
-            return True
-        return super(TableHead, self).on_touch_up(touch)
-
-    def on_pos(self, instance, value):
-        # Store original position for reset after dragging if not hasattr(self, "_original_pos"):
-        self._original_pos = value
 
 
 class RippleButton(TouchRippleBehavior, Label):
@@ -312,15 +256,19 @@ class SimulationGrid(Widget):
     def add_particle(self, x, y, element, color=None):
         if 0 <= x < self.grid.shape[0] and 0 <= y < self.grid.shape[1]:
             particle = Particle(element, x=x, y=y)
+            body = pymunk.Body()
+            body.position = (x * self.pixel_size, y * self.pixel_size)
+            shape = pymunk.Circle(body, particle.radius * self.pixel_size)
+            shape.mass = particle.mass
+            shape.elasticity = particle.elasticity
+            shape.friction = particle.friction
             if color:
                 particle.color = color
-            self.particles.append(particle)
+            self.space.add(body, shape)
+            self.rigid_bodies[(x, y)] = body
+            # self.particles.append(particle)
             self.grid[x, y] = particle
             self.active_particles.add((x, y))
-            print(
-                f"Added particle at ({x}, {y}): {particle.id}, color: {particle.color}"
-            )
-            self.render()  # Trigger immediate render for testing
         else:
             print(f"Failed to add particle at ({x}, {y}): Out of bounds")
 
@@ -412,13 +360,16 @@ class SimulationGrid(Widget):
             else:
                 self.active_particles.discard((x, y))
 
+        self.propagate_conductivity_vectorized()
+
         self.grid = new_grid
         self.render()
 
     def process_particle(self, x, y, new_grid):
         particle = self.grid[x, y]
+        self.check_phase_transition(particle, x, y)
         self.check_combustion(x, y, particle, new_grid)
-        self.propagate_conductivity(x, y, particle, new_grid)
+        # self.propagate_conductivity(x, y, particle, new_grid)
         neighbors = [
             (x + 1, y) if x + 1 < self.grid.shape[0] else None,
             (x - 1, y) if x - 1 >= 0 else None,
@@ -432,6 +383,62 @@ class SimulationGrid(Widget):
                     self.evaluate_interaction(
                         x, y, particle, nx, ny, self.grid[nx, ny], new_grid
                     )
+
+    def update_pressure(self, x, y, particle):
+        neighbors = [
+            (x + dx, y + dy)
+            for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]
+            if 0 <= x + dx < self.grid.shape[0] and 0 <= y + dy < self.grid.shape[1]
+        ]
+        neighbor_count = sum(1 for nx, ny in neighbors if self.grid[nx, ny])
+        particle.pressure = (
+            1.0 + 0.1 * neighbor_count * particle.density
+        )  # Simplified model
+
+    def update_velocity(self, particle, dt):
+        body = self.rigid_bodies.get((particle.x, particle.y))
+        if body:
+            body.apply_force_at_local_point(
+                (0, -9.81 * particle.mass), (0, 0)
+            )  # Gravity
+            particle.velocity = list(body.velocity / self.pixel_size)
+
+    def check_phase_transition(self, particle, x, y):
+        transitions = particle.phase_transitions
+        current_temp = particle.temperature
+        current_pressure = particle.pressure
+
+        # Linear interpolation for phase transition thresholds
+        for transition_type, points in transitions.items():
+            for i in range(len(points) - 1):
+                p1, p2 = points[i], points[i + 1]
+                if p1["pressure"] <= current_pressure <= p2["pressure"]:
+                    # Interpolate temperature threshold
+                    t1, t2 = p1["temperature"], p2["temperature"]
+                    p1_p, p2_p = p1["pressure"], p2["pressure"]
+                    threshold_temp = t1 + (current_pressure - p1_p) * (t2 - t1) / (
+                        p2_p - p1_p
+                    )
+                    if current_temp <= threshold_temp:
+                        particle.state = (
+                            "liquid" if transition_type == "condensation" else "solid"
+                        )
+                        # Apply phase change effects
+                        effects = particle.propagation["phase_change_effects"][
+                            transition_type
+                        ]
+                        particle.pressure += float(effects["pressure"].lstrip("+"))
+                        particle.temperature += float(effects["temperature"])
+                        particle.current = float(effects["current"])
+                        # Adjust physics properties
+                        if particle.state == "liquid":
+                            particle.friction *= 2
+                            particle.velocity = [v * 0.5 for v in particle.velocity]
+                        elif particle.state == "solid":
+                            particle.friction *= 10
+                            particle.velocity = [0, 0]
+                        return
+        particle.state = "gas"  # Default or revert to gas
 
     def check_combustion(self, x, y, particle, new_grid):
         if not particle.ignition_temperature:
@@ -573,6 +580,26 @@ class SimulationGrid(Widget):
                             body.apply_impulse_at_local_point(
                                 (impulse * dx, impulse * dy), (0, 0)
                             )
+
+    def propagate_conductivity_vectorized(self):
+        for x, y in self.active_particles:
+            particle = self.grid[x, y]
+            neighbors = [
+                (x + dx, y + dy)
+                for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]
+                if 0 <= x + dx < self.grid.shape[0] and 0 <= y + dy < self.grid.shape[1]
+            ]
+            for nx, ny in neighbors:
+                if self.grid[nx, ny]:
+                    neighbor = self.grid[nx, ny]
+                    heat_transfer = (
+                        particle.heat_conductivity
+                        * particle.propagation["heat_conduction_rate"]
+                        * (particle.temperature - neighbor.temperature)
+                        * 0.1
+                    )
+                    neighbor.temperature += heat_transfer / neighbor.specific_heat
+                    particle.temperature -= heat_transfer / particle.specific_heat
 
     def propagate_conductivity(self, x, y, particle, new_grid):
         neighbors = [

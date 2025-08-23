@@ -1,135 +1,128 @@
 # pyright: reportAttributeAccessIssue=false
+from kivy.uix.label import NumericProperty
 from app.ui.elements import load_elements
+from app.ui.widgets import PickerLabel
+from kivy.properties import ObjectProperty
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
-from kivy.uix.widget import Widget
+from kivy.clock import Clock
 from app.ui.modals.DraggableTableHead import DraggableTableHead
 
 ELEMENTS = load_elements()
 
 
+class ColumnBoxLayout(BoxLayout):
+    """Custom BoxLayout for table columns with a max_width property"""
+
+    max_width = NumericProperty(100)  # Default width
+
+    def __init__(self, id: str, **kwargs):
+        super().__init__(**kwargs)
+        self.bind(minimum_height=self.setter("height"))
+        self.index = 0
+        self.id = id
+
+    def add_widget(self, widget, **kwargs):
+        """Override to ensure all children have size_hint_x set to None"""
+        if isinstance(widget, (PickerLabel, DraggableTableHead)):
+            widget.size_hint_x = None
+            widget.index = len(self.children)
+        super().add_widget(widget, **kwargs)
+
+
 class ScrollableTable(ScrollView):
     """Custom scrollable table with proper drag handling"""
 
+    _cols = ObjectProperty({})
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.do_scroll_x = True
-        self.do_scroll_y = True
+        self.container = BoxLayout(
+            orientation="horizontal", size_hint=(None, None), spacing=0
+        )
+        self.container.bind(
+            minimum_width=self.container.setter("width"),
+            minimum_height=self.container.setter("height"),
+        )
+        super().add_widget(self.container)
+        self.do_scroll_x, self.do_scroll_y = True, True
         self.bar_width = 10
         self.scroll_type = ["bars", "content"]
         self.bind(size=self._update_scroll_y)
 
-        # Main container for headers and data
-        self.main_layout = BoxLayout(orientation="vertical", size_hint=(None, None))
-        self.main_layout.bind(minimum_width=self.main_layout.setter("width"))
-        self.main_layout.bind(minimum_height=self.main_layout.setter("height"))
+        properties = self._get_property_dict(ELEMENTS)
+        for head_text, data in properties.items():
+            column = self._create_column(head_text, data)
+            column.index = len(self.container.children)
+            self.container.add_widget(column)
 
-        # Header container (non-scrollable in Y)
-        self.header_container = Widget(size_hint=(None, None), height=40)
-        self.headers = []
+    def _get_property_dict(self, elements) -> dict:
+        properties = {}
+        for _, element in elements.items():
+            for k, v in element["intrinsic_properties"].items():
+                if k in [
+                    "radius",
+                    "phase_transitions",
+                    "ignition_temperature",
+                    "flame_temperature",
+                    "burn_duration",
+                    "combustion_products",
+                    "oxygen_requirement",
+                ]:
+                    continue
+                properties.setdefault(k, []).append(v)
+        return properties
 
-        # Data grid (scrollable)
-        self.data_grid = GridLayout(cols=1, size_hint=(None, None), spacing=(1, 1))
-        self.data_grid.bind(minimum_width=self.data_grid.setter("width"))
-        self.data_grid.bind(minimum_height=self.data_grid.setter("height"))
+    def _create_column(self, head_text, data) -> ColumnBoxLayout:
+        column = ColumnBoxLayout(
+            id=head_text, orientation="vertical", size_hint=(None, None)
+        )
+        header = DraggableTableHead(
+            column, text=head_text, size_hint=(None, None), height=40
+        )
+        column.add_widget(header)
+        self._cols[header] = data
+        labels = []
 
-        # Add header and data to main layout
-        self.main_layout.add_widget(self.header_container)
-        self.main_layout.add_widget(self.data_grid)
+        if head_text == "color":
+            for color in data:
+                label = PickerLabel(
+                    text="",
+                    color=(0, 0, 0, 1),
+                    background_color=color,
+                    size_hint=(None, None),
+                    height=40,
+                )
+                column.add_widget(label)
+                labels.append(label)
+        else:
+            for item in data:
+                data_label = PickerLabel(
+                    text=str(item), size_hint=(None, None), height=40
+                )
+                column.add_widget(data_label)
+                labels.append(data_label)
 
-        # Add main layout to ScrollView
-        self.add_widget(self.main_layout)
+        def update_widths(dt):
+            max_width = max(header.texture_size[0] + 10, 100)
+            for label in labels:
+                max_width = max(max_width, label.texture_size[0] + 10)
+            header.width = max_width
+            for label in labels:
+                label.width = max_width
+                column.max_width = column.width = max_width
+                column.do_layout()
+
+        self.container.do_layout()
+
+        Clock.schedule_once(update_widths, 0)
+        return column
 
     def _update_scroll_y(self, instance, value):
-        # Only enable vertical scrolling if content height exceeds ScrollView height
-        content_height = self.main_layout.height
-        if content_height <= self.height:
-            self.do_scroll_y = False
-        else:
-            self.do_scroll_y = True
-
-    def clear_table(self):
-        """Clear all table content"""
-        self.header_container.clear_widgets()
-        self.data_grid.clear_widgets()
-        self.headers.clear()
-
-    def set_columns(self, num_cols):
-        """Set the number of columns"""
-        self.data_grid.cols = num_cols
-        self._update_header_layout()
-
-    def add_header(self, text, column_id):
-        header = DraggableTableHead(
-            text=text,
-            column=column_id,
-            size_hint=(None, None),
-            height=40,
-        )
-        header.original_index = len(self.headers)
-        self.headers.append(header)
-        self.header_container.add_widget(header)
-        self._update_header_layout()
-        return header
-
-    def add_data_widget(self, widget):
-        """Add a data widget to the table"""
-        self.data_grid.add_widget(widget)
-
-    def _update_header_layout(self):
-        if not self.headers:
-            return
-
-        num_cols = len(self.headers)
-        if num_cols == 0:
-            return
-
-        # Calculate column width
-        total_width = max(self.width, num_cols * 100)  # Minimum 100px per column
-        col_width = total_width / num_cols
-
-        # Position headers
-        for i, header in enumerate(self.headers):
-            header.width = col_width
-            header.x = i * col_width
-            header.y = 0  # Headers stay at top
-
-        # Update container sizes
-        self.header_container.width = total_width
-        self.header_container.height = 40
-        self.data_grid.width = total_width
-        self.main_layout.width = total_width
-        self.main_layout.height = self.header_container.height + self.data_grid.height
-
-    def on_header_drag(self, header, pos):
-        """Handle header drag for visual feedback"""
-        # Could add visual indicators here
-        pass
-
-    def get_drop_target(self, dragged_header, pos):
-        """Find which header is being dragged over"""
-        for header in self.headers:
-            if header != dragged_header and header.collide_point(*pos):
-                return header
-        return None
-
-    def reorder_columns(self, from_column, to_column):
-        """Reorder columns and notify parent"""
-        if hasattr(self.parent, "reorder_columns"):
-            self.parent.reorder_columns(from_column, to_column)
+        self.do_scroll_y = self.container.height > self.height
 
     def on_touch_down(self, touch):
-        # Check if touch is on a header first
-        for header in self.headers:
+        for header in self._cols.keys():
             if header.collide_point(*touch.pos):
                 return header.on_touch_down(touch)
-
-        # Otherwise, handle normal scrolling
         return super().on_touch_down(touch)
-
-    def on_scroll_stop(self, touch, check_children=True):
-        # Clamp scroll position to prevent overscroll
-        self.scroll_x = max(0, min(self.scroll_x, 1))
-        self.scroll_y = max(0, min(self.scroll_y, 1))
-        return super().on_scroll_stop(touch, check_children)

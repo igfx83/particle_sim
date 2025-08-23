@@ -1,11 +1,15 @@
+# pyright: reportAttributeAccessIssue=false
 import logging
+import numpy as np
 from kivy.app import App
 from kivy.core.window import Window
 from kivy.factory import Factory
+from kivy.graphics.texture import Texture
 from kivy.uix.widget import Widget
 from kivy.properties import (
     NumericProperty,
     StringProperty,
+    ColorProperty,
 )
 
 
@@ -14,6 +18,7 @@ class SimulationCursor(Widget):
     cursor_width = NumericProperty(10)
     cursor_height = NumericProperty(10)
     selected_element = StringProperty(None, allownone=True)
+    cursor_color = ColorProperty([1, 1, 1, 0.7])
 
     def __init__(self, **kwargs):
         super(SimulationCursor, self).__init__(**kwargs)
@@ -23,6 +28,63 @@ class SimulationCursor(Widget):
         self.app = App.get_running_app()
         self.modifiers = []
         self._modal_open = False
+
+        self.pixel_size = 4
+        self.cursor_texture = None
+        self.cursor_mesh = None
+        self.cursor_data = None
+        self.current_mouse_pos = (0, 0)
+
+        self.bind(
+            shape=self._update_cursor_texture,
+            cursor_width=self._update_cursor_texture,
+            cursor_height=self._update_cursor_texture,
+            cursor_color=self._update_cursor_texture,
+        )
+
+        self._setup_cursor_rendering()
+
+    def _setup_cursor_rendering(self):
+        """Initialize cursor texture and mesh"""
+        # Start with a reasonable size - will be updated when properties change
+        self._update_cursor_texture()
+
+    def _update_cursor_texture(self, *args):
+        """Update the cursor texture based on current shape and size"""
+        # Calculate texture dimensions based on cursor size
+        tex_width = max(int(self.cursor_width / self.pixel_size) + 2, 4)
+        tex_height = max(int(self.cursor_height / self.pixel_size) + 2, 4)
+
+        # Create or recreate texture
+        self.cursor_texture = Texture.create(size=(tex_width, tex_height))
+        self.cursor_texture.mag_filter = "nearest"
+        self.cursor_texture.min_filter = "nearest"
+
+        # Create texture data array
+        self.cursor_data = np.zeros((tex_height, tex_width, 4), dtype=np.uint8)
+
+        # Generate the cursor shape
+        self._generate_cursor_shape(tex_width, tex_height)
+
+        # Create/update mesh
+        self._create_cursor_mesh(tex_width, tex_height)
+
+        # Update texture with data
+        self.cursor_texture.blit_buffer(
+            self.cursor_data.tobytes(), colorfmt="rgba", bufferfmt="ubyte"
+        )
+
+    def _create_cursor_mesh(self, tex_width, tex_height):
+        pass
+
+    def _generate_cursor_shape(self, width, height):
+        pass
+
+    def _set_cursor_shape(self, shape: str) -> None:
+        if shape == self.shape:
+            return
+        if shape not in ["square", "ellipse", "triangle"]:
+            return
 
     def on_mouse_pos(self, window, pos):
         if self._modal_open:
