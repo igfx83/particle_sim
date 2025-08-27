@@ -1,0 +1,39 @@
+
+<Toolbar@BoxLayout>
+    orientation: "horizontal"
+    size_hint: 1, 0.075
+    pos_hint: {'top': 0.1, 'left': 0}
+    RippleButton:
+        text: "Picker"
+        size_hint: 0.2, .75
+        size_hint_max_x: 150
+        pos_hint: {'x': 0, 'center_y': 0.5}
+        canvas.before:
+            Color:
+                rgba: 0.2, 0.2, 0.2, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+    ToolbarButton:
+        text: "Ellipse"
+        on_press: app.simulation_cursor.shape = 'ellipse'
+    ToolbarButton:
+        text: "Square"
+        on_press: app.simulation_cursor.shape = 'square'
+    ToolbarButton:
+        text: "Triangle"
+        on_press: app.simulation_cursor.shape = 'triangle'
+    ToolbarButton:
+        text: "Size +"
+        on_press: app.simulation_cursor.cursor_width = app.simulation_cursor.cursor_height = min(app.simulation_cursor.cursor_width + 2, 50)
+    ToolbarButton:
+        text: "Size -"
+        on_press: app.simulation_cursor.cursor_width = app.simulation_cursor.cursor_height = max(app.simulation_cursor.cursor_width - 2, 5)
+
+
+
+<ToolbarButton@Button>
+    size_hint: None, .75
+    pos_hint: {'center_y': 0.5}
+    font_size: 26
+

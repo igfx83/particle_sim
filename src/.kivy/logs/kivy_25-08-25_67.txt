@@ -1,0 +1,135 @@
+[INFO   ] Logger: Record log in /storage/emulated/0/code/particle_sim/src/.kivy/logs/kivy_25-08-25_67.txt
+[INFO   ] Kivy: v2.3.1
+[INFO   ] Kivy: Installed at "/data/user/0/ru.iiec.pydroid3/files/aarch64-linux-android/lib/python3.13/site-packages/kivy/__init__.py"
+[INFO   ] Python: v3.13.2 (main, Apr 27 2025, 04:34:27) [GCC 11.4.0]
+[INFO   ] Python: Interpreter at "/data/user/0/ru.iiec.pydroid3/files/aarch64-linux-android/bin/python3"
+[INFO   ] Logger: Purge log fired. Processing...
+[INFO   ] Logger: Purge finished!
+[INFO   ] Factory: 195 symbols loaded
+[INFO   ] Image: Providers: img_tex, img_dds, img_sdl2 (img_pil, img_ffpyplayer ignored)
+[INFO   ] Window: Provider: sdl2
+[INFO   ] GL: Using the "OpenGL ES 2" graphics system
+[INFO   ] GL: Backend used <sdl2>
+[INFO   ] GL: OpenGL version <b'OpenGL ES 3.2 V@0615.87.2 (GIT@2e251f7ab9, Iee84b1ed59, 1747409076) (Date:05/16/25)'>
+[INFO   ] GL: OpenGL vendor <b'Qualcomm'>
+[INFO   ] GL: OpenGL renderer <b'Adreno (TM) 730'>
+[INFO   ] GL: OpenGL parsed version: 3, 2
+[INFO   ] GL: Texture max size <16384>
+[INFO   ] GL: Texture max units <16>
+[INFO   ] Window: auto add sdl2 input provider
+[INFO   ] Window: virtual keyboard allowed, multiuser mode, not docked
+[INFO   ] Text: Provider: sdl2
+[INFO   ] Loaded from gases.json: ['helium', 'oxygen', 'carbon_dioxide', 'sulphur_dioxide', 'nitrogen_dioxide', 'hydrogen', 'nitrogen']
+[INFO   ] Loaded from liquids.json: ['blood', 'sulphuric_acid', 'water', 'mercury', 'ethanol', 'nitric_acid']
+[INFO   ] Loaded from solids.json: ['lead', 'lead_sulphate', 'iron_oxide', 'cobalt_sulphate', 'calcium_sulphate', 'ash', 'iron_sulphate', 'sodium_hydroxide', 'mercury_gold_amalgam', 'copper_nitrate', 'denatured_blood', 'copper', 'potassium_nitrate', 'black_powder', 'iron', 'cobalt', 'bone']
+[INFO   ] ELEMENTS keys: ['helium', 'oxygen', 'carbon_dioxide', 'sulphur_dioxide', 'nitrogen_dioxide', 'hydrogen', 'nitrogen', 'blood', 'sulphuric_acid', 'water', 'mercury', 'ethanol', 'nitric_acid', 'lead', 'lead_sulphate', 'iron_oxide', 'cobalt_sulphate', 'calcium_sulphate', 'ash', 'iron_sulphate', 'sodium_hydroxide', 'mercury_gold_amalgam', 'copper_nitrate', 'denatured_blood', 'copper', 'potassium_nitrate', 'black_powder', 'iron', 'cobalt', 'bone']
+[INFO   ] Loaded from gases.json: ['helium', 'oxygen', 'carbon_dioxide', 'sulphur_dioxide', 'nitrogen_dioxide', 'hydrogen', 'nitrogen']
+[INFO   ] Loaded from liquids.json: ['blood', 'sulphuric_acid', 'water', 'mercury', 'ethanol', 'nitric_acid']
+[INFO   ] Loaded from solids.json: ['lead', 'lead_sulphate', 'iron_oxide', 'cobalt_sulphate', 'calcium_sulphate', 'ash', 'iron_sulphate', 'sodium_hydroxide', 'mercury_gold_amalgam', 'copper_nitrate', 'denatured_blood', 'copper', 'potassium_nitrate', 'black_powder', 'iron', 'cobalt', 'bone']
+[INFO   ] ELEMENTS keys: ['helium', 'oxygen', 'carbon_dioxide', 'sulphur_dioxide', 'nitrogen_dioxide', 'hydrogen', 'nitrogen', 'blood', 'sulphuric_acid', 'water', 'mercury', 'ethanol', 'nitric_acid', 'lead', 'lead_sulphate', 'iron_oxide', 'cobalt_sulphate', 'calcium_sulphate', 'ash', 'iron_sulphate', 'sodium_hydroxide', 'mercury_gold_amalgam', 'copper_nitrate', 'denatured_blood', 'copper', 'potassium_nitrate', 'black_powder', 'iron', 'cobalt', 'bone']
+[INFO   ] GL: NPOT texture support is available
+[WARNING] Base: Unknown <android> provider
+[INFO   ] Base: Start application main loop
+[DEBUG  ] Touch down at: (117.6204833984375, 141.01097989082336)
+[DEBUG  ] Touch up at: (117.48876953125, 140.72594594955444)
+[DEBUG  ] Original Pos: 901.186279296875
+Last Pos: 901.186279296875
+Current Pos: 892.0980224609375
+Delta Pos: -9.0882568359375
+[DEBUG  ] Original Pos: 901.186279296875
+Last Pos: 892.0980224609375
+Current Pos: 852.97900390625
+Delta Pos: -39.1190185546875
+[DEBUG  ] Original Pos: 901.186279296875
+Last Pos: 852.97900390625
+Current Pos: 829.79736328125
+Delta Pos: -23.181640625
+[DEBUG  ] Original Pos: 901.186279296875
+Last Pos: 829.79736328125
+Current Pos: 796.7459935545921
+Delta Pos: -33.05136972665787
+[DEBUG  ] Original Pos: 901.186279296875
+Last Pos: 796.7459935545921
+Current Pos: 750.6236946582794
+Delta Pos: -46.122298896312714
+[DEBUG  ] Original Pos: 901.186279296875
+Last Pos: 750.6236946582794
+Current Pos: 716.1565937995911
+Delta Pos: -34.467100858688354
+[DEBUG  ] Original Pos: 901.186279296875
+Last Pos: 716.1565937995911
+Current Pos: 668.8488700985909
+Delta Pos: -47.307723701000214
+[DEBUG  ] Original Pos: 901.186279296875
+Last Pos: 668.8488700985909
+Current Pos: 634.9925537109375
+Delta Pos: -33.85631638765335
+[DEBUG  ] Original Pos: 901.186279296875
+Last Pos: 634.9925537109375
+Current Pos: 605.5442785620689
+Delta Pos: -29.44827514886856
+[DEBUG  ] Original Pos: 901.186279296875
+Last Pos: 605.5442785620689
+Current Pos: 559.5956258773804
+Delta Pos: -45.94865268468857
+[DEBUG  ] Original Pos: 901.186279296875
+Last Pos: 559.5956258773804
+Current Pos: 521.0229819118977
+Delta Pos: -38.57264396548271
+[DEBUG  ] Original Pos: 901.186279296875
+Last Pos: 521.0229819118977
+Current Pos: 439.85212460160255
+Delta Pos: -81.1708573102951
+[DEBUG  ] Original Pos: 901.186279296875
+Last Pos: 439.85212460160255
+Current Pos: 354.7981199622154
+Delta Pos: -85.05400463938713
+[DEBUG  ] Original Pos: 901.186279296875
+Last Pos: 354.7981199622154
+Current Pos: 315.322998046875
+Delta Pos: -39.475121915340424
+[DEBUG  ] Original Pos: 900.132568359375
+Last Pos: 900.132568359375
+Current Pos: 900.132568359375
+Delta Pos: 0.0
+[DEBUG  ] Original Pos: 900.132568359375
+Last Pos: 900.132568359375
+Current Pos: 834.6054339408875
+Delta Pos: -65.52713441848755
+[DEBUG  ] Original Pos: 900.132568359375
+Last Pos: 834.6054339408875
+Current Pos: 657.3887989521027
+Delta Pos: -177.2166349887848
+[DEBUG  ] Original Pos: 900.132568359375
+Last Pos: 657.3887989521027
+Current Pos: 465.8641341626644
+Delta Pos: -191.52466478943825
+[DEBUG  ] Original Pos: 900.132568359375
+Last Pos: 465.8641341626644
+Current Pos: 439.3974609375
+Delta Pos: -26.466673225164413
+[DEBUG  ] Original Pos: 428.4652099609375
+Last Pos: 428.4652099609375
+Current Pos: 428.4652099609375
+Delta Pos: 0.0
+[DEBUG  ] Original Pos: 428.4652099609375
+Last Pos: 428.4652099609375
+Current Pos: 489.10626155138016
+Delta Pos: 60.64105159044266
+[DEBUG  ] Original Pos: 428.4652099609375
+Last Pos: 489.10626155138016
+Current Pos: 816.0357080698013
+Delta Pos: 326.9294465184212
+[DEBUG  ] Original Pos: 428.4652099609375
+Last Pos: 816.0357080698013
+Current Pos: 816.6259765625
+Delta Pos: 0.5902684926986694
+[DEBUG  ] Original Pos: 804.50830078125
+Last Pos: 804.50830078125
+Current Pos: 803.191162109375
+Delta Pos: -1.317138671875
+[DEBUG  ] Original Pos: 804.50830078125
+Last Pos: 803.191162109375
+Current Pos: 801.083740234375
+Delta Pos: -2.107421875
+[INFO   ] Base: Leaving application in progress...
