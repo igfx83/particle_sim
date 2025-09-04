@@ -1,0 +1,260 @@
+[INFO   ] Logger: Record log in /storage/emulated/0/code/particle_sim/src/.kivy/logs/kivy_25-08-29_12.txt
+[INFO   ] Kivy: v2.3.1
+[INFO   ] Kivy: Installed at "/data/user/0/ru.iiec.pydroid3/files/aarch64-linux-android/lib/python3.13/site-packages/kivy/__init__.py"
+[INFO   ] Python: v3.13.2 (main, Apr 27 2025, 04:34:27) [GCC 11.4.0]
+[INFO   ] Python: Interpreter at "/data/user/0/ru.iiec.pydroid3/files/aarch64-linux-android/bin/python3"
+[INFO   ] Logger: Purge log fired. Processing...
+[INFO   ] Logger: Purge finished!
+[INFO   ] Factory: 195 symbols loaded
+[INFO   ] Image: Providers: img_tex, img_dds, img_sdl2, img_pil (img_ffpyplayer ignored)
+[INFO   ] Window: Provider: sdl2
+[INFO   ] GL: Using the "OpenGL ES 2" graphics system
+[INFO   ] GL: Backend used <sdl2>
+[INFO   ] GL: OpenGL version <b'OpenGL ES 3.2 V@0615.87.2 (GIT@2e251f7ab9, Iee84b1ed59, 1747409076) (Date:05/16/25)'>
+[INFO   ] GL: OpenGL vendor <b'Qualcomm'>
+[INFO   ] GL: OpenGL renderer <b'Adreno (TM) 730'>
+[INFO   ] GL: OpenGL parsed version: 3, 2
+[INFO   ] GL: Texture max size <16384>
+[INFO   ] GL: Texture max units <16>
+[INFO   ] Window: auto add sdl2 input provider
+[INFO   ] Window: virtual keyboard not allowed, single mode, not docked
+[INFO   ] Text: Provider: sdl2
+[INFO   ] Loaded from gases.json: ['helium', 'oxygen', 'carbon_dioxide', 'sulphur_dioxide', 'nitrogen_dioxide', 'hydrogen', 'nitrogen']
+[INFO   ] Loaded from liquids.json: ['blood', 'sulphuric_acid', 'water', 'mercury', 'ethanol', 'nitric_acid']
+[INFO   ] Loaded from solids.json: ['lead', 'lead_sulphate', 'iron_oxide', 'cobalt_sulphate', 'calcium_sulphate', 'ash', 'iron_sulphate', 'sodium_hydroxide', 'mercury_gold_amalgam', 'copper_nitrate', 'denatured_blood', 'copper', 'potassium_nitrate', 'black_powder', 'iron', 'cobalt', 'bone']
+[INFO   ] ELEMENTS keys: ['helium', 'oxygen', 'carbon_dioxide', 'sulphur_dioxide', 'nitrogen_dioxide', 'hydrogen', 'nitrogen', 'blood', 'sulphuric_acid', 'water', 'mercury', 'ethanol', 'nitric_acid', 'lead', 'lead_sulphate', 'iron_oxide', 'cobalt_sulphate', 'calcium_sulphate', 'ash', 'iron_sulphate', 'sodium_hydroxide', 'mercury_gold_amalgam', 'copper_nitrate', 'denatured_blood', 'copper', 'potassium_nitrate', 'black_powder', 'iron', 'cobalt', 'bone']
+[INFO   ] Loaded from gases.json: ['helium', 'oxygen', 'carbon_dioxide', 'sulphur_dioxide', 'nitrogen_dioxide', 'hydrogen', 'nitrogen']
+[INFO   ] Loaded from liquids.json: ['blood', 'sulphuric_acid', 'water', 'mercury', 'ethanol', 'nitric_acid']
+[INFO   ] Loaded from solids.json: ['lead', 'lead_sulphate', 'iron_oxide', 'cobalt_sulphate', 'calcium_sulphate', 'ash', 'iron_sulphate', 'sodium_hydroxide', 'mercury_gold_amalgam', 'copper_nitrate', 'denatured_blood', 'copper', 'potassium_nitrate', 'black_powder', 'iron', 'cobalt', 'bone']
+[INFO   ] ELEMENTS keys: ['helium', 'oxygen', 'carbon_dioxide', 'sulphur_dioxide', 'nitrogen_dioxide', 'hydrogen', 'nitrogen', 'blood', 'sulphuric_acid', 'water', 'mercury', 'ethanol', 'nitric_acid', 'lead', 'lead_sulphate', 'iron_oxide', 'cobalt_sulphate', 'calcium_sulphate', 'ash', 'iron_sulphate', 'sodium_hydroxide', 'mercury_gold_amalgam', 'copper_nitrate', 'denatured_blood', 'copper', 'potassium_nitrate', 'black_powder', 'iron', 'cobalt', 'bone']
+[INFO   ] GL: NPOT texture support is available
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()". Consider setting force_dispatch to True to avoid this.
+[WARNING] Base: Unknown <android> provider
+[INFO   ] Base: Start application main loop
+[DEBUG  ] Touch down at: (70.862060546875, 133.87369441986084)
+[DEBUG  ] Touch up at: (65.593505859375, 136.15777826309204)
+[DEBUG  ] Original Pos: 364.847412109375
+Last Pos: 364.847412109375
+Current Pos: 365.5059814453125
+Delta Pos: 0.6585693359375
+[DEBUG  ] Original Pos: 364.847412109375
+Last Pos: 365.5059814453125
+Current Pos: 370.90625
+Delta Pos: 5.4002685546875
+[DEBUG  ] Original Pos: 384.07763671875
+Last Pos: 384.07763671875
+Current Pos: 386.3167724609375
+Delta Pos: 2.2391357421875
+[DEBUG  ] Original Pos: 384.07763671875
+Last Pos: 386.3167724609375
+Current Pos: 386.448486328125
+Delta Pos: 0.1317138671875
+[DEBUG  ] Original Pos: 169.26011733710766
+Last Pos: 169.26011733710766
+Current Pos: 169.26011733710766
+Delta Pos: 0.0
+[DEBUG  ] Original Pos: 169.26011733710766
+Last Pos: 169.26011733710766
+Current Pos: 159.5054931640625
+Delta Pos: -9.754624173045158
+[DEBUG  ] Original Pos: 169.26011733710766
+Last Pos: 159.5054931640625
+Current Pos: 156.3443603515625
+Delta Pos: -3.1611328125
+[DEBUG  ] Original Pos: 169.26011733710766
+Last Pos: 156.3443603515625
+Current Pos: 155.42236328125
+Delta Pos: -0.9219970703125
+[DEBUG  ] Original Pos: 693.86865234375
+Last Pos: 693.86865234375
+Current Pos: 677.8463807106018
+Delta Pos: -16.022271633148193
+[DEBUG  ] Original Pos: 693.86865234375
+Last Pos: 677.8463807106018
+Current Pos: 612.3875471353531
+Delta Pos: -65.45883357524872
+[DEBUG  ] Original Pos: 693.86865234375
+Last Pos: 612.3875471353531
+Current Pos: 555.2344691157341
+Delta Pos: -57.15307801961899
+[DEBUG  ] Original Pos: 693.86865234375
+Last Pos: 555.2344691157341
+Current Pos: 474.6577391028404
+Delta Pos: -80.57673001289368
+[DEBUG  ] Original Pos: 693.86865234375
+Last Pos: 474.6577391028404
+Current Pos: 416.1465547680855
+Delta Pos: -58.511184334754944
+[DEBUG  ] Original Pos: 693.86865234375
+Last Pos: 416.1465547680855
+Current Pos: 362.81121733784676
+Delta Pos: -53.335337430238724
+[DEBUG  ] Original Pos: 693.86865234375
+Last Pos: 362.81121733784676
+Current Pos: 272.900392472744
+Delta Pos: -89.91082486510277
+[DEBUG  ] Original Pos: 693.86865234375
+Last Pos: 272.900392472744
+Current Pos: 190.36654102802277
+Delta Pos: -82.53385144472122
+[DEBUG  ] Original Pos: 693.86865234375
+Last Pos: 190.36654102802277
+Current Pos: 158.02445176243782
+Delta Pos: -32.342089265584946
+[DEBUG  ] Original Pos: 693.86865234375
+Last Pos: 158.02445176243782
+Current Pos: 153.31494140625
+Delta Pos: -4.70951035618782
+[DEBUG  ] Original Pos: 545.822265625
+Last Pos: 545.822265625
+Current Pos: 542.397705078125
+Delta Pos: -3.424560546875
+[DEBUG  ] Original Pos: 545.822265625
+Last Pos: 542.397705078125
+Current Pos: 439.05206575989723
+Delta Pos: -103.34563931822777
+[DEBUG  ] Original Pos: 545.822265625
+Last Pos: 439.05206575989723
+Current Pos: 291.603761613369
+Delta Pos: -147.44830414652824
+[DEBUG  ] Original Pos: 545.822265625
+Last Pos: 291.603761613369
+Current Pos: 273.174560546875
+Delta Pos: -18.429201066493988
+[DEBUG  ] Original Pos: 478.2257185578346
+Last Pos: 478.2257185578346
+Current Pos: 478.2257185578346
+Delta Pos: 0.0
+[DEBUG  ] Original Pos: 478.2257185578346
+Last Pos: 478.2257185578346
+Current Pos: 475.6187744140625
+Delta Pos: -2.6069441437721252
+[DEBUG  ] Original Pos: 478.2257185578346
+Last Pos: 475.6187744140625
+Current Pos: 474.5650634765625
+Delta Pos: -1.0537109375
+[DEBUG  ] Original Pos: 478.2257185578346
+Last Pos: 474.5650634765625
+Current Pos: 474.169921875
+Delta Pos: -0.3951416015625
+[DEBUG  ] Original Pos: 478.2257185578346
+Last Pos: 474.169921875
+Current Pos: 474.169921875
+Delta Pos: 0.0
+[DEBUG  ] Original Pos: 478.2257185578346
+Last Pos: 474.169921875
+Current Pos: 474.433349609375
+Delta Pos: 0.263427734375
+[DEBUG  ] Original Pos: 478.2257185578346
+Last Pos: 474.433349609375
+Current Pos: 474.69677734375
+Delta Pos: 0.263427734375
+[DEBUG  ] Original Pos: 478.2257185578346
+Last Pos: 474.69677734375
+Current Pos: 475.2236328125
+Delta Pos: 0.52685546875
+[DEBUG  ] Original Pos: 478.2257185578346
+Last Pos: 475.2236328125
+Current Pos: 473.64306640625
+Delta Pos: -1.58056640625
+[DEBUG  ] Original Pos: 478.2257185578346
+Last Pos: 473.64306640625
+Current Pos: 469.955078125
+Delta Pos: -3.68798828125
+[DEBUG  ] Original Pos: 478.2257185578346
+Last Pos: 469.955078125
+Current Pos: 417.55440750718117
+Delta Pos: -52.40067061781883
+[DEBUG  ] Original Pos: 478.2257185578346
+Last Pos: 417.55440750718117
+Current Pos: 360.3028013408184
+Delta Pos: -57.25160616636276
+[DEBUG  ] Original Pos: 478.2257185578346
+Last Pos: 360.3028013408184
+Current Pos: 293.0740948319435
+Delta Pos: -67.2287065088749
+[DEBUG  ] Original Pos: 478.2257185578346
+Last Pos: 293.0740948319435
+Current Pos: 233.66625291109085
+Delta Pos: -59.40784192085266
+[DEBUG  ] Original Pos: 478.2257185578346
+Last Pos: 233.66625291109085
+Current Pos: 198.2293701171875
+Delta Pos: -35.43688279390335
+[DEBUG  ] Original Pos: 478.2257185578346
+Last Pos: 198.2293701171875
+Current Pos: 172.6768798828125
+Delta Pos: -25.552490234375
+[DEBUG  ] Original Pos: 478.2257185578346
+Last Pos: 172.6768798828125
+Current Pos: 151.997802734375
+Delta Pos: -20.6790771484375
+[DEBUG  ] Original Pos: 478.2257185578346
+Last Pos: 151.997802734375
+Current Pos: 148.836669921875
+Delta Pos: -3.1611328125
+[DEBUG  ] Original Pos: 478.2257185578346
+Last Pos: 148.836669921875
+Current Pos: 148.04638671875
+Delta Pos: -0.790283203125
+[DEBUG  ] Original Pos: 478.2257185578346
+Last Pos: 148.04638671875
+Current Pos: 147.51953125
+Delta Pos: -0.52685546875
+[DEBUG  ] Original Pos: 478.2257185578346
+Last Pos: 147.51953125
+Current Pos: 148.04638671875
+Delta Pos: 0.52685546875
+[DEBUG  ] Original Pos: 478.2257185578346
+Last Pos: 148.04638671875
+Current Pos: 148.309814453125
+Delta Pos: 0.263427734375
+[DEBUG  ] Original Pos: 420.4306640625
+Last Pos: 420.4306640625
+Current Pos: 412.264404296875
+Delta Pos: -8.166259765625
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "operands could not be broadcast together with shapes (4,4,4) (4,5,4) ". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "operands could not be broadcast together with shapes (4,5,4) (5,5,4) ". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "operands could not be broadcast together with shapes (5,5,4) (5,6,4) ". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "operands could not be broadcast together with shapes (5,6,4) (6,6,4) ". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "operands could not be broadcast together with shapes (6,6,4) (6,7,4) ". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "operands could not be broadcast together with shapes (6,7,4) (7,7,4) ". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "operands could not be broadcast together with shapes (7,7,4) (7,8,4) ". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "operands could not be broadcast together with shapes (7,8,4) (8,8,4) ". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "operands could not be broadcast together with shapes (8,8,4) (8,9,4) ". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "operands could not be broadcast together with shapes (8,9,4) (9,9,4) ". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "operands could not be broadcast together with shapes (9,9,4) (9,10,4) ". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "operands could not be broadcast together with shapes (9,10,4) (10,10,4) ". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "operands could not be broadcast together with shapes (10,10,4) (10,11,4) ". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "operands could not be broadcast together with shapes (10,11,4) (11,11,4) ". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "operands could not be broadcast together with shapes (11,11,4) (11,12,4) ". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "operands could not be broadcast together with shapes (11,12,4) (12,12,4) ". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "operands could not be broadcast together with shapes (12,12,4) (12,13,4) ". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "operands could not be broadcast together with shapes (12,13,4) (13,13,4) ". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "operands could not be broadcast together with shapes (13,13,4) (13,14,4) ". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "operands could not be broadcast together with shapes (13,14,4) (14,14,4) ". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()". Consider setting force_dispatch to True to avoid this.
+[WARNING] Property: Value comparison failed for <ObjectProperty name=cursor_data> with "The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()". Consider setting force_dispatch to True to avoid this.
+[INFO   ] Base: Leaving application in progress...

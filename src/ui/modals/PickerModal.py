@@ -1,7 +1,8 @@
 # pyright: reportAttributeAccessIssue=false
-import logging
 from kivy.app import App
 from kivy.cache import Cache
+
+# from kivy.logger import Logger
 from kivy.properties import ObjectProperty
 from ui.elements import load_elements
 from ui.modals.ScrollableTable import ScrollableTable
@@ -19,9 +20,9 @@ class PickerModal(ModalView):
         self.app: App = App.get_running_app()
 
     def on_touch_move(self, touch):
-        logging.debug(
-            f"Original Pos: {touch.ox}\nLast Pos: {touch.px}\nCurrent Pos: {touch.x}\nDelta Pos: {touch.dx}"
-        )
+        # Logger.debug(
+        #     f"Original Pos: {touch.ox}\nLast Pos: {touch.px}\nCurrent Pos: {touch.x}\nDelta Pos: {touch.dx}"
+        # )
         return super().on_touch_move(touch)
 
     def on_pre_open(self):

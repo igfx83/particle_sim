@@ -1,0 +1,58 @@
+#:import Popup kivy.uix.popup
+
+<DevToolbar@StackLayout>
+    orientation: 'bt-rl'
+  #  size_hint: .1, 1
+    pos_hint: {'top': 1, 'right': 1}
+    height: self.minimum_height
+    padding: dp(5)
+    spacing: dp(5)
+
+
+    DevToolbarButton:
+        text: 'Test Gravity'
+        on_press: app.open_option_popup()
+
+    DevToolbarButton:
+        text: 'Clear All'
+        on_press: app.simulation_grid._reset_graph()
+
+
+<DevToolbarButton@Button>
+    size_hint: 1, None
+    pos_hint: {'x': 0}
+    font_size: 18
+
+<OptionPopup@Popup>
+    title: 'Particle Tests'
+    id: option_popup
+    size_hint: 0.75, 0.25
+    auto_dismiss: True
+    StackLayout:
+        orientation: 'tb-lr'
+        padding: dp(10)
+        spacing: dp(10)
+        Label:
+            text: "Number of Particles to add."
+            text_size: self.width, None
+            size_hint_y: None
+            height: self.texture_size[1]
+            halign: 'center'
+            valign: 'top'
+        TextInput:
+            id: particle_count
+            text: '0'
+            multiline: False
+            input_filter: 'int'
+            size_hint_y: None
+            height: dp(40)
+        Button:
+            text: 'Ok'
+            size_hint_y: None
+            height: dp(40)
+            on_press: app.dismiss_option_popup(root, int(particle_count.text))
+        Button:
+            text:r'Cancel'
+            size_hint_y: None
+            height: dp(40)
+            on_press: app.dismiss_option_popup(root, 0)

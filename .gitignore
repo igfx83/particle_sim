@@ -1,1 +1,4 @@
 src/app/__pycache__
+src/engine/__pycache__
+src/engine/components/__pycache__
+src/services/__pycache__

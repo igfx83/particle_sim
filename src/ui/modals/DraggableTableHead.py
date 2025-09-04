@@ -1,3 +1,4 @@
+# pyright: reportOperatorIssue=false
 import time
 from kivy.uix.label import Label
 from kivy.input.motionevent import MotionEvent
@@ -37,7 +38,6 @@ class DraggableTableHead(Label):
         return super().on_touch_down(touch)
 
     def on_touch_move(self, touch: MotionEvent):
-
         if touch.grab_current is self and self.is_dragging:
             parent = self.column.parent
             if not parent:

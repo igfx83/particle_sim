@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false
 import random
 import os
 from kivy.logger import Logger
@@ -6,7 +7,9 @@ from kivy.app import App
 from kivy.lang import Builder
 from kivy.cache import Cache
 from kivy.clock import Clock
+from kivy.factory import Factory
 from kivy.properties import NumericProperty, ObjectProperty
+from kivy.uix.popup import ModalView
 from services.state import AppState
 from ui.elements import load_elements
 from ui.modals.PickerModal import PickerModal
@@ -22,54 +25,66 @@ class ParticleSimApp(App):
         self.icon = "assets/icon.png"
         self.root = None
         self.state = AppState()
-        self.simulation_cursor = None
         self.elements = load_elements()
-        self._is_running = True
+        self._is_running = False
         Cache.register("resources", timeout=60)
 
     def build(self):
         kv_path = os.path.join(os.path.dirname(__file__), "kv", "particlesim.kv")
         root = Builder.load_file(kv_path)
-        Clock.schedule_interval(self.update, 1.0 / 60.0)
         return root
+
+    def dismiss_option_popup(self, instance, value=0):
+        if value > 0:
+            self._is_running = False
+            instance.dismiss()
+            self.initialize_particles(num_particles=value)
+            return value
+
+        instance.dismiss()
+        return True
 
     def display_settings(self, settings):
         self.settings = settings
+        return True
 
     def update(self, dt):
         self.fps = Clock.get_fps()
-        if self.root and "simulation_grid" in self.root.ids and self._is_running:
-            self.root.ids.simulation_grid.update(dt)
-        if random.random() < 0.01:  # 1% chance each frame
-            stats = self.root.ids.simulation_grid.get_stats()
-            print(
-                f"Active: {stats['active_particles']}, "
-                f"Burning: {stats['burning_particles']}, "
-                f"Avg Temp: {stats['average_temperature']:.1f}°C"
-            )
+
+        if self.simulation_grid and self._is_running:
+            self.simulation_grid.update(dt)
+        return True
 
     def on_start(self):
         try:
+            if self.root is None:
+                raise ValueError("Root widget is not initialized")
             self.simulation_cursor = self.root.ids.simulation_cursor
-            Clock.schedule_once(self.initialize_particles, 0.2)
+            Clock.schedule_once(lambda dt: self.initialize_particles(), 0.2)
         except Exception as e:
             Logger.error(f"Error during on_start: {e}")
 
-    def initialize_particles(self, dt):
-        if self.root and self.root.ids.simulation_grid:
-            simulation_grid = self.root.ids.simulation_grid
-            element_keys = list(self.elements.keys())
-            if not element_keys:
-                raise ValueError("No elements loaded into ELEMENTS dictionary")
+    def open_option_popup(self):
+        Factory.OptionPopup().open()
 
-            for _ in range(1000):
-                x = random.randint(0, simulation_grid.spatial_grid.shape[0] - 2)
-                y = random.randint(0, simulation_grid.spatial_grid.shape[1] - 2)
-                simulation_grid.add_particle(x, y, random.choice(element_keys))
-            simulation_grid.render()
+    def initialize_particles(self, num_particles=500):
+        if self.root and self.root.ids.simulation_grid:
+            self.simulation_grid = self.root.ids.simulation_grid
+            element_keys = list(self.elements.keys())
+
+            if self.simulation_grid.wait_for_ready(timeout=5):
+                for _ in range(num_particles):
+                    x = random.randint(0, self.simulation_grid.grid_width - 2)
+                    y = random.randint(0, self.simulation_grid.grid_height - 2)
+                    self.simulation_grid.add_particle(x, y, random.choice(element_keys))
+                self._is_running = True
+
+                Clock.schedule_interval(self.update, 1.0 / 60.0)
 
     def open_modal(self):
-        modal = PickerModal()
+        modal: ModalView = PickerModal()
+        self._is_running = False
+        modal.bind(on_pre_dismiss=lambda instance: setattr(self, "_is_running", True))
         modal.open()
 
     def get_mouse_pos(self):

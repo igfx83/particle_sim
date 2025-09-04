@@ -1,22 +1,29 @@
 #:import Settings kivy.uix.settings
 #:import SimulationCursor ui.cursor
 #:import SimulationGrid ui.widgets
-#import Factory kivy.factory.Factory
+#:import Factory kivy.factory.Factory
 #:include kv/widgets.kv
+#:include kv/devwidgets.kv
 FloatLayout:
     SimulationGrid:
         id: simulation_grid
         size_hint: .9, .9
         pos_hint: {'x': 0, 'top': 1}
         cursor: simulation_cursor
-        on_touch_down: simulation_cursor.on_grid_touch_down(self, args[1])
-        on_touch_move: simulation_cursor.on_grid_touch_move(self, args[1])
+        canvas.after:
+            Color:
+                rgba: 0.8, 0.8, 0.8, 1
+            Line:
+                rectangle: self.x, self.y, self.width, root.height
+                width: 1
 
     SimulationCursor:
         id: simulation_cursor
         size_hint: None, None
         size: 10, 10
         pos: 0, 0
+        simulation_grid: simulation_grid
+        hud: hud_label
         shape: 'ellipse'
         cursor_width: 10
         cursor_height: 10
@@ -46,24 +53,17 @@ FloatLayout:
     Toolbar:
         id: toolbar
 
-    BoxLayout:
-        orientation: "vertical"
+    RelativeLayout:
         size_hint: .1, .9
         pos_hint: {'right': 1, 'top': 1}
-
-    RelativeLayout:
-        id: scene_graph
-        size_hint: .9, .9
-        pos_hint: {'x': 0, 'top': 1}
-        canvas.after:
+        canvas:
             Color:
-                rgba: 0.8, 0.8, 0.8, 1
-            Line:
-                rectangle: self.x, self.y, self.width, root.height
-                width: 1
-
-#<BackgroundColor@Widget>
-#   background_color: [0, 0, 0, 1]
+                rgba: 0.2, 0.8, 0.2, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        DevToolbar:
+            id: dev_toolbar
 
 <DraggableTableHead>:
     font_size: 26
@@ -109,7 +109,6 @@ FloatLayout:
         Line:
             rectangle: self.x, self.y, self.width, self.height
             width: 1
-  #  on_touch_down: root.on_color_touch(args[1]) if not self.text else None
 
 <PickerModal>:
     id: picker_modal
@@ -121,7 +120,7 @@ FloatLayout:
     overlay_color: 0, 0, 0, 0.5
     canvas.before:
         Color:
-            rgba: 0.2, 0.2, 0.2, 1  # Custom background color
+            rgba: 0.2, 0.2, 0.2, 1
         Rectangle:
             pos: self.pos
             size: self.size
@@ -133,12 +132,3 @@ FloatLayout:
         TabbedPanelItem:
             text: "Settings"
             content: app.settings
-            #    orientation: "vertical"
-            #    size_hint: 1, 1
-            #    Label:
-            #        text: "Settings go here"
-            #        size_hint: 1, 0.9
-            #    Button:
-            #        text: "Close"
-            #        size_hint: 1, 0.1
-            #        on_release: picker_modal.dismiss()
