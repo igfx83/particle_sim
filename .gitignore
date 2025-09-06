@@ -1,4 +1,10 @@
-src/app/__pycache__
-src/engine/__pycache__
-src/engine/components/__pycache__
-src/services/__pycache__
+
+*__pycache__*
+.buildozer*
+src/engine/components/gravity_temp.py
+src/tests
+src/tests
+src/ui/temp.py
+src/kivy_accelerator.py
+src/launch.py
+src/mysdl2.py

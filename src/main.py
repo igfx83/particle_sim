@@ -12,7 +12,17 @@ from kivy.properties import NumericProperty, ObjectProperty
 from kivy.uix.popup import ModalView
 from services.state import AppState
 from ui.elements import load_elements
-from ui.modals.PickerModal import PickerModal
+from ui.modals.picker.PickerModal import PickerModal
+# from kivy.utils import platform
+#
+# platform = platform
+#
+#
+# def simulate_mobile():
+#     return "android"
+#
+#
+# platform = simulate_mobile()
 
 
 class ParticleSimApp(App):
@@ -38,6 +48,7 @@ class ParticleSimApp(App):
         if value > 0:
             self._is_running = False
             instance.dismiss()
+            self.state.dev_states.update({"test_gravity": f"{value}"})
             self.initialize_particles(num_particles=value)
             return value
 
@@ -78,6 +89,7 @@ class ParticleSimApp(App):
                     y = random.randint(0, self.simulation_grid.grid_height - 2)
                     self.simulation_grid.add_particle(x, y, random.choice(element_keys))
                 self._is_running = True
+                Clock.unschedule(self.update)
 
                 Clock.schedule_interval(self.update, 1.0 / 60.0)
 

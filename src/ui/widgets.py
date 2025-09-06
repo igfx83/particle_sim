@@ -1037,101 +1037,15 @@ class SimulationGrid(Widget):
     def _reset_graph(self):
         max_particles = self.grid_width * self.grid_height
         self.buffers[0] = self._create_buffer(max_particles)
+        self.particle_texture = None
+        self.mesh = None
+        self._setup_texture_rendering(self.grid_width, self.grid_height)
         self.canvas.clear()
+        import gc
+
+        gc.collect()
         if self.buffers[0]["particle_count"] == 0:
             return True
-
-    def resize(self, new_width, new_height):
-        """Resize the simulation grid and preserve existing particles"""
-        old_width, old_height = self.grid_width, self.grid_height
-
-        if new_width == old_width and new_height == old_height:
-            return
-
-        Logger.debug(
-            f"Resizing grid from {old_width}x{old_height} to {new_width}x{new_height}"
-        )
-
-        # Store old particle data
-        old_particle_count = self.particle_count
-        old_active = self.active[:old_particle_count].copy()
-        old_x = self.x_coords[:old_particle_count].copy()
-        old_y = self.y_coords[:old_particle_count].copy()
-        old_element_ids = self.element_ids[:old_particle_count].copy()
-        old_temperatures = self.temperatures[:old_particle_count].copy()
-        old_masses = self.masses[:old_particle_count].copy()
-        old_colors = self.colors[:old_particle_count].copy()
-        old_states = self.states[:old_particle_count].copy()
-        old_burning = self.burning[:old_particle_count].copy()
-        old_melting = self.melting[:old_particle_count].copy()
-        old_velocities_x = self.velocities_x[:old_particle_count].copy()
-        old_velocities_y = self.velocities_y[:old_particle_count].copy()
-
-        # Update grid dimensions
-        self.grid_width = new_width
-        self.grid_height = new_height
-
-        # Resize all arrays
-        max_particles = new_width * new_height
-
-        # Recreate arrays with new size
-        self.element_ids = np.zeros(max_particles, dtype=np.uint16)
-        self.x_coords = np.zeros(max_particles, dtype=np.uint16)
-        self.y_coords = np.zeros(max_particles, dtype=np.uint16)
-        self.temperatures = np.full(max_particles, 20.0, dtype=np.float32)
-        self.states = np.full(max_particles, -1, dtype=np.int32)
-        self.masses = np.ones(max_particles, dtype=np.float32)
-        self.densities = np.ones(max_particles, dtype=np.float32)
-        self.velocities_x = np.zeros(max_particles, dtype=np.float32)
-        self.velocities_y = np.zeros(max_particles, dtype=np.float32)
-        self.active = np.zeros(max_particles, dtype=bool)
-        self.burning = np.zeros(max_particles, dtype=bool)
-        self.melting = np.zeros(max_particles, dtype=bool)
-        self.colors = np.ones((max_particles, 4), dtype=np.float32)
-
-        # Recreate spatial grid
-        self.spatial_grid = np.full((new_width, new_height), -1, dtype=np.int32)
-
-        # Transfer particles that fit in the new grid
-        new_particle_count = 0
-        for i in range(old_particle_count):
-            if not old_active[i]:
-                continue
-            x, y = old_x[i], old_y[i]
-            if (
-                0 <= x < new_width
-                and 0 <= y < new_height
-                and self.spatial_grid[x, y] == -1
-            ):
-                idx = new_particle_count
-                self.element_ids[idx] = old_element_ids[i]
-                self.x_coords[idx] = x
-                self.y_coords[idx] = y
-                self.temperatures[idx] = old_temperatures[i]
-                self.masses[idx] = old_masses[i]
-                self.colors[idx] = old_colors[i]
-                self.states[idx] = old_states[i]
-                self.burning[idx] = old_burning[i]
-                self.melting[idx] = old_melting[i]
-                self.velocities_x[idx] = old_velocities_x[i]
-                self.velocities_y[idx] = old_velocities_y[i]
-                self.active[idx] = True
-                new_particle_count += 1
-
-        self.particle_count = new_particle_count
-
-        # Recreate air grid (if you still use it)
-        if hasattr(self, "_air_overlay"):
-            self._air_overlay.resize(new_width, new_height)
-
-        # Recreate rendering components
-        self._setup_texture_rendering(new_width, new_height)
-
-        Logger.debug(f"Resize complete: {new_particle_count} particles transferred")
-
-        # Call resize callback if set
-        if self.on_resized:
-            self.on_resized()
 
     def get_particle_at(self, x, y):
         """Get particle index at position - supports both (x, y) and pos tuple"""

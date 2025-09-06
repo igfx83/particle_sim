@@ -10,7 +10,7 @@ COLLISION_DAMPING = 0.7  # Energy loss on collision
 MIN_VELOCITY_THRESHOLD = 0.01
 
 
-@njit(fastmath=True)
+@njit(fastmath=True, parallel=True)
 def calculate_fall_distance(velocity_y, dt, max_distance=5):
     """Calculate how far a particle should fall this frame"""
     base_distance = int(abs(velocity_y * dt))
@@ -37,7 +37,7 @@ def apply_gravity_vectorized(velocity_y, active_mask, dt, g=GRAVITY_ACCELERATION
                 velocity_y[i] = 0.0
 
 
-@njit(fastmath=True)
+@njit(fastmath=True, parallel=True)
 def resolve_particle_collisions(
     positions_x,
     positions_y,

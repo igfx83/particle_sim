@@ -26,14 +26,23 @@
 <OptionPopup@Popup>
     title: 'Particle Tests'
     id: option_popup
-    size_hint: 0.75, 0.25
+    font_size: 24
+    size_hint: .35, None
+    height: box.height + label.height + dp(20)
     auto_dismiss: True
-    StackLayout:
-        orientation: 'tb-lr'
+    BoxLayout:
+        id: box
+        size_hint_y: None
+        pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+        height: self.minimum_height
+        width: self.minimum_width
+        orientation: 'vertical'
         padding: dp(10)
         spacing: dp(10)
         Label:
+            id: label
             text: "Number of Particles to add."
+            font_size: 20
             text_size: self.width, None
             size_hint_y: None
             height: self.texture_size[1]
@@ -41,18 +50,25 @@
             valign: 'top'
         TextInput:
             id: particle_count
-            text: '0'
+            text: app.state.dev_states.get('test_gravity', '0')
+            font_size: 16
+            focus: True
             multiline: False
             input_filter: 'int'
-            size_hint_y: None
+            pos_hint: {'center_x': 0.5}
+            size_hint: .33, None
             height: dp(40)
         Button:
             text: 'Ok'
-            size_hint_y: None
+            font_size: 16
+            pos_hint: {'center_x': 0.5}
+            size_hint: .25, None
             height: dp(40)
             on_press: app.dismiss_option_popup(root, int(particle_count.text))
         Button:
-            text:r'Cancel'
-            size_hint_y: None
+            text: 'Cancel'
+            font_size: 16
+            pos_hint: {'center_x': 0.5}
+            size_hint: .25, None
             height: dp(40)
             on_press: app.dismiss_option_popup(root, 0)

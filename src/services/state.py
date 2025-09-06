@@ -7,6 +7,11 @@ class AppState(EventDispatcher):
     """Singleton class to manage application state."""
 
     element_table = ObjectProperty([])
+    dev_states = ObjectProperty(
+        {
+            "test_gravity": "0",
+        }
+    )
 
     def __init__(self):
         super().__init__()
