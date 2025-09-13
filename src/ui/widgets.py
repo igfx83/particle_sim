@@ -64,7 +64,6 @@ class RippleButton(TouchRippleBehavior, Label):
         if self.collide_point(*touch.pos):
             # Logger.debug(f"Touch down at: {touch.pos}")
             self.ripple_show(touch)
-            return True
         return super(RippleButton, self).on_touch_down(touch)
 
     def on_touch_up(self, touch):
@@ -75,117 +74,8 @@ class RippleButton(TouchRippleBehavior, Label):
             if self.app is None:
                 return
             self.app.open_modal()
-            return True
+            # return True
         return super(RippleButton, self).on_touch_up(touch)
-
-
-# class Particle(Widget):
-#     id = StringProperty("")
-#     symbol = StringProperty("")
-#     mass = NumericProperty(0.0)
-#     density = NumericProperty(0.0)
-#     state = StringProperty("")
-#     color = ColorProperty([1.0, 1.0, 1.0, 1.0])
-#     radius = NumericProperty(1.0)
-#     specific_heat = NumericProperty(1.0)
-#     heat_conductivity = NumericProperty(0.0)
-#     electrical_conductivity = NumericProperty(0.0)
-#     elasticity = NumericProperty(0.0)
-#     friction = NumericProperty(0.0)
-#     ignition_temperature = NumericProperty(0.0)
-#     flame_temperature = NumericProperty(0.0)
-#     burn_duration = NumericProperty(0.0)
-#     oxygen_requirement = NumericProperty(0.0)
-#     phase_transitions = DictProperty({})
-#     combustion_products = ListProperty([])
-#     temperature = NumericProperty(0.0)
-#     pressure = NumericProperty(0.0)
-#     velocity = ListProperty([0.0, 0.0])
-#     acceleration = ListProperty([0.0, 0.0])
-#     energy = NumericProperty(0.0)
-#     current = NumericProperty(0.0)
-#     burning = BooleanProperty(False)
-#     burn_progress = NumericProperty(0.0)
-#     dynamic_color = ColorProperty([0.0, 0.0, 0.0, 0.0])
-#     x = NumericProperty(0)
-#     y = NumericProperty(0)
-#
-#     def __init__(self, material: str, x: int = 0, y: int = 0, **kwargs):
-#         super(Particle, self).__init__(**kwargs)
-#         __slots__ = [
-#             "id",
-#             "symbol",
-#             "mass",
-#             "density",
-#             "state",
-#             "color",
-#             "radius",
-#             "specific_heat",
-#             "heat_conductivity",
-#             "electrical_conductivity",
-#             "elasticity",
-#             "friction",
-#             "ignition_temperature",
-#             "flame_temperature",
-#             "burn_duration",
-#             "oxygen_requirement",
-#             "phase_transitions",
-#             "combustion_products",
-#             "temperature",
-#             "pressure",
-#             "velocity",
-#             "acceleration",
-#             "energy",
-#             "current",
-#             "burning",
-#             "burn_progress",
-#             "dynamic_color",
-#             "x",
-#             "y",
-#             "reactivity",
-#             "propagation",
-#             "_app",
-#         ]
-#         self._app = App.get_running_app()
-#
-#         # Fast property assignment
-#         props = self._app.elements[material]
-#         intrinsic = props["intrinsic_properties"]
-#         dynamic = props["dynamic_properties"]
-#         interaction = props["interaction_properties"]
-#
-#         # Direct assignment for speed
-#         self.id = intrinsic["id"]
-#         self.symbol = intrinsic["symbol"]
-#         self.mass = intrinsic["mass"]
-#         self.density = intrinsic["density"]
-#         self.state = intrinsic["state"]
-#         self.color = intrinsic["color"]
-#         self.radius = intrinsic["radius"]
-#         self.specific_heat = intrinsic["specific_heat"]
-#         self.heat_conductivity = intrinsic["heat_conductivity"]
-#         self.electrical_conductivity = intrinsic["electrical_conductivity"]
-#         self.elasticity = intrinsic["elasticity"]
-#         self.friction = intrinsic["friction"]
-#         self.ignition_temperature = intrinsic.get("ignition_temperature", 0.0)
-#         self.flame_temperature = intrinsic.get("flame_temperature", 0.0)
-#         self.burn_duration = intrinsic.get("burn_duration", 0.0)
-#         self.oxygen_requirement = intrinsic.get("oxygen_requirement", 0.0)
-#         self.phase_transitions = intrinsic.get("phase_transitions", {})
-#         self.combustion_products = intrinsic.get("combustion_products", [])
-#         self.temperature = dynamic["temperature"]
-#         self.pressure = dynamic["pressure"]
-#         self.velocity = dynamic["velocity"]
-#         self.acceleration = dynamic["acceleration"]
-#         self.energy = dynamic["energy"]
-#         self.current = dynamic["current"]
-#         self.burning = dynamic["burning"]
-#         self.burn_progress = dynamic["burn_progress"]
-#         self.dynamic_color = dynamic.get("color", [0.0, 0.0, 0.0, 0.0])
-#         self.reactivity = interaction["reactivity"]
-#         self.propagation = interaction["propagation"]
-#         self.x = x
-#         self.y = y
 
 
 STATES = {"solid": 0, "liquid": 1, "gas": 2}

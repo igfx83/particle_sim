@@ -2,6 +2,7 @@
 import random
 import os
 from kivy.logger import Logger
+
 from kivy.core.window import Window
 from kivy.app import App
 from kivy.lang import Builder
@@ -98,6 +99,7 @@ class ParticleSimApp(App):
         self._is_running = False
         modal.bind(on_pre_dismiss=lambda instance: setattr(self, "_is_running", True))
         modal.open()
+        self.open_settings()
 
     def get_mouse_pos(self):
         return Window.mouse_pos

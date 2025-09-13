@@ -1,5 +1,5 @@
 # pyright: reportAttributeAccessIssue=false
-from kivy.logger import Logger
+# from kivy.logger import Logger
 from kivy.app import App
 from kivy.cache import Cache
 from kivy.properties import ObjectProperty
@@ -33,9 +33,7 @@ class PickerModal(ModalView):
         # Create new table if cache miss or invalid
         new_table = ScrollableTable()
         self._table_initialized = True
-        Cache.append(
-            "resources", "element_table", new_table, timeout=300
-        )  # 5min timeout
+        Cache.append("resources", "element_table", new_table, timeout=0)  # 5min timeout
         return new_table
 
     def on_touch_move(self, touch):
@@ -46,11 +44,6 @@ class PickerModal(ModalView):
         """Optimized pre-open with deferred table loading"""
         if not self.app or not hasattr(self.app, "root"):
             return
-
-        # Immediate UI state changes
-        self.app.is_running = False
-        self.app.open_settings()
-        self.app.root.ids.simulation_cursor._modal_open = True
 
         # Defer heavy table operations
         Clock.schedule_once(self._load_table_deferred, 0)

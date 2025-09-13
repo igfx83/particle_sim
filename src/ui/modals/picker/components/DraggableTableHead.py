@@ -16,7 +16,7 @@ class DraggableTableHead(Label):
     tap_timeout = NumericProperty(0.2)  # Maximum time for tap detection
 
     def __init__(self, column, **kwargs):
-        super(Label, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.column = column
         self.column.id = self.text
         self.bind(pos=self._schedule_rect_update, size=self._schedule_rect_update)

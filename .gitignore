@@ -8,3 +8,9 @@ src/ui/temp.py
 src/kivy_accelerator.py
 src/launch.py
 src/mysdl2.py
+src/services/__pycache__
+src/buildozer.spec
+_BACKUP_26630.gitignore
+_BASE_26630.gitignore
+_LOCAL_26630.gitignore
+_REMOTE_26630.gitignore

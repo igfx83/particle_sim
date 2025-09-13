@@ -47,6 +47,9 @@ class SimulationCursor(Widget):
         )
 
         # Initialize cursor
+        Window.bind(on_keyboard=self.on_keyboard)
+        Window.bind(on_scroll=self.on_scroll)
+
         self.update_cursor()
 
     def update_cursor(self, *args):
@@ -70,7 +73,7 @@ class SimulationCursor(Widget):
         # Generate shape
         for y in range(tex_height):
             for x in range(tex_width):
-                if self._point_on_perimeter(
+                if self._point_in_shape(
                     x, y, center_x, center_y, half_width, half_height
                 ):
                     self.cursor_data[y, x] = color
@@ -153,30 +156,27 @@ class SimulationCursor(Widget):
 
         return positions
 
-    def _point_on_perimeter(self, x, y, center_x, center_y, half_width, half_height):
-        """Check if a point is on the perimeter of the cursor shape."""
-        dx = x - center_x
-        dy = y - center_y
-
-        if self.shape == "ellipse":
-            # Perimeter: distance from center is close to 1 (within a tolerance)
-            r = (dx / half_width) ** 2 + (dy / half_height) ** 2
-            return abs(r - 1) < 0.15
-        elif self.shape == "square":
-            # Perimeter: on the edge of the square
-            return (
-                (abs(dx) == half_width or abs(dy) == half_height)
-                and abs(dx) <= half_width
-                and abs(dy) <= half_height
-            )
+    def _is_in_cursor_shape(self, dx, dy, half_w, half_h):
+        """Check if offset is within cursor shape."""
+        if self.shape == "square":
+            return True
+        elif self.shape == "ellipse":
+            if half_w <= 0 or half_h <= 0:
+                return dx == 0 and dy == 0
+            return (dx / half_w) ** 2 + (dy / half_h) ** 2 <= 1
         elif self.shape == "triangle":
-            # Perimeter: on one of the triangle's edges
-            if dy < -half_height or dy > half_height:
+            if dy < -half_h or dy > half_h:
                 return False
-            y_normalized = (dy + half_height) / (2 * half_height)
-            width_at_y = half_width * (1 - y_normalized)
-            return abs(dx) == round(width_at_y)
-        return False
+            y_rel = dy
+            x_rel = abs(dx)
+            return (
+                y_rel >= -half_h
+                and y_rel <= half_h
+                and x_rel <= (half_h - y_rel) * half_w / half_h
+                if half_h > 0
+                else False
+            )
+        return True
 
     def on_touch_down(self, touch):
         """Handle touch/mouse down events."""
@@ -201,7 +201,7 @@ class SimulationCursor(Widget):
         #     if particle:
         #         self.selected_element = particle["element_id"]
         # if hasattr(particle, "color"):
-        #    qqqqqqqqqq self.cursor_color = [*particle.color[:3], 0.7]
+        #     self.cursor_color = [*particle.color[:3], 0.7]
         # Logger.debug(f"Sampled element: {self.selected_element}")
 
     def on_touch_move(self, touch):
@@ -307,11 +307,9 @@ class SimulationCursor(Widget):
         except (ValueError, KeyError):
             self.cursor_color = [1.0, 1.0, 1.0, 0.7]
 
-    def on_keyboard(self, *kwargs):
+    def on_keyboard(self, window, key, scancode, codepoint, modifier):
         """Handle keyboard input."""
         # Shape selection
-        key, scancode, codepoint, modifier = kwargs
-
         shape_map = {"q": "square", "e": "ellipse", "r": "triangle"}
         if codepoint in shape_map:
             self.shape = shape_map[codepoint]
@@ -328,9 +326,7 @@ class SimulationCursor(Widget):
                     min(self.cursor_width + delta, 100), 2
                 )
 
+    # Bind keyboard and scroll events at the class level
 
-# Bind keyboard and scroll events at the class level
-Window.bind(on_keyboard=SimulationCursor.on_keyboard.__get__(SimulationCursor))
-Window.bind(on_scroll=SimulationCursor.on_scroll)
 
 Factory.register("SimulationCursor", cls=SimulationCursor)
