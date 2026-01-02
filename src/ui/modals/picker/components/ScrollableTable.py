@@ -98,10 +98,11 @@ class ScrollableTable(ScrollView):
         self.container = BoxLayout(
             orientation="horizontal", size_hint=(None, None), spacing=0
         )
-        self.container.bind(
-            minimum_width=self.container.setter("width"),
-            minimum_height=self.container.setter("height"),
-        )
+        self.container.bind(minimum_height=self.container.setter("height"))
+        # self.container.bind(
+        #     minimum_width=self.container.setter("width"),
+        #     minimum_height=self.container.setter("height"),
+        # )
         super().add_widget(self.container)
 
         self.do_scroll_x, self.do_scroll_y = True, True
@@ -166,22 +167,6 @@ class ScrollableTable(ScrollView):
             properties.setdefault("boiling", []).append("N/A")
             properties.setdefault("freezing", []).append("N/A")
 
-    def _create_columns_batch(self, properties: Dict[str, List[Any]]):
-        """Vectorized column creation with batched layout updates"""
-        columns = []
-
-        # Create all columns first (batch creation)
-        for i, (head_text, data) in enumerate(properties.items()):
-            column = self._create_column_optimized(head_text, data, i)
-            columns.append(column)
-
-        # Batch add to container (single layout pass)
-        for column in columns:
-            self.container.add_widget(column)
-
-        # Single deferred width calculation for all columns
-        Clock.schedule_once(lambda dt: self._batch_update_widths(columns), 0.1)
-
     def _create_column_optimized(
         self, head_text: str, data: List[Any], index: int
     ) -> ColumnBoxLayout:
@@ -234,6 +219,20 @@ class ScrollableTable(ScrollView):
 
         return labels
 
+    def debug_dimensions(self):
+        """Debug method to print dimensions"""
+        print(f"ScrollView size: {self.size}")
+        print(f"Container size: {self.container.size}")
+        print(f"Container minimum_width: {self.container.minimum_width}")
+        print(f"do_scroll_x: {self.do_scroll_x}")
+        print(f"do_scroll_y: {self.do_scroll_y}")
+
+        total_column_width = 0
+        for i, column in enumerate(self.container.children):
+            print(f"Column {i} width: {column.width}")
+            total_column_width += column.width
+        print(f"Total column widths: {total_column_width}")
+
     def _batch_update_widths(self, columns: List[ColumnBoxLayout]):
         """Vectorized width updates for all columns"""
         # Calculate optimal widths for all columns at once
@@ -243,8 +242,21 @@ class ScrollableTable(ScrollView):
         for column, width in zip(columns, optimal_widths):
             self._apply_column_width(column, width)
 
+        total_width = sum(optimal_widths)
+        self.container.width = total_width
+
+        self._update_scroll_settings()
+
         # Single layout update for container
         self.container.do_layout()
+        Clock.schedule_once(lambda dt: self.debug_dimensions(), 0.5)
+
+    def _update_scroll_settings(self, *args):
+        """Update scroll settings based on content vs container size"""
+        # Enable X-scroll if container is wider than ScrollView
+        self.do_scroll_x = self.container.width > self.width
+        # Enable Y-scroll if container is taller than ScrollView
+        self.do_scroll_y = self.container.height > self.height
 
     def _apply_column_width(self, column: ColumnBoxLayout, width: float):
         """Apply width to column and all its children efficiently"""
@@ -255,6 +267,35 @@ class ScrollableTable(ScrollView):
         for child in column.children:
             if hasattr(child, "width"):
                 child.width = width
+
+    def _recalculate_container_width(self):
+        """Recalculate container width based on column widths"""
+        total_width = 0
+        for column in self.container.children:
+            if hasattr(column, "width"):
+                total_width += column.width
+
+        self.container.width = total_width
+        self._update_scroll_settings()
+
+    def _create_columns_batch(self, properties: Dict[str, List[Any]]):
+        """Vectorized column creation with batched layout updates"""
+        columns = []
+
+        # Create all columns first (batch creation)
+        for i, (head_text, data) in enumerate(properties.items()):
+            column = self._create_column_optimized(head_text, data, i)
+            columns.append(column)
+
+        # Batch add to container (single layout pass)
+        for column in columns:
+            self.container.add_widget(column)
+
+        # Single deferred width calculation for all columns
+        Clock.schedule_once(lambda dt: self._batch_update_widths(columns), 0.1)
+
+        # Fix: Add an additional delayed width recalculation to ensure it works
+        Clock.schedule_once(lambda dt: self._recalculate_container_width(), 0.2)
 
     def _update_scroll_y(self, instance, value):
         """Optimized scroll update check"""

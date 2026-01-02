@@ -1,13 +1,12 @@
 #:import Popup kivy.uix.popup
+#:import Clock kivy.clock
 
-<DevToolbar@StackLayout>
+<DevToolbar@StackLayout>:
     orientation: 'bt-rl'
-  #  size_hint: .1, 1
     pos_hint: {'top': 1, 'right': 1}
     height: self.minimum_height
     padding: dp(5)
     spacing: dp(5)
-
 
     DevToolbarButton:
         text: 'Test Gravity'
@@ -17,13 +16,28 @@
         text: 'Clear All'
         on_press: app.simulation_grid._reset_graph()
 
+    GravityButton:
+        id: gravity_btn
+        text: 'Vertical'
+        font_size: 18
+        size_hint: 1, None
 
-<DevToolbarButton@Button>
+<DevToolbarButton@Button>:
     size_hint: 1, None
     pos_hint: {'x': 0}
     font_size: 18
 
-<OptionPopup@Popup>
+<GravityButton@Button>:
+    size_hint: 1, None
+    font_size: 18
+    on_release: app.open_gravity_dropdown(self)
+
+<GravityOption@Button>:
+    size_hint_y: None
+    height: dp(40)
+    font_size: 16
+
+<OptionPopup@Popup>:
     title: 'Particle Tests'
     id: option_popup
     font_size: 24

@@ -52,6 +52,16 @@ class SimulationCursor(Widget):
 
         self.update_cursor()
 
+    def on_motion(self, etype, me):
+        """Handle mouse motion events (even without touching)."""
+        if etype == "begin" and not self._modal_open:
+            # Update cursor position and HUD when mouse moves
+            mouse_pos = Window.mouse_pos
+            self.current_pos = mouse_pos
+            self._update_position_and_hud(mouse_pos)
+            return True
+        return  # Don't consume the event
+
     def update_cursor(self, *args):
         """Update cursor texture and mesh when properties change."""
         # Calculate texture dimensions
@@ -183,40 +193,48 @@ class SimulationCursor(Widget):
         if self._modal_open:
             return
 
-        if not self.simulation_grid.collide_point(*touch.pos):
+        if not self.simulation_grid or not self.simulation_grid.collide_point(
+            *touch.pos
+        ):
             return
 
-        # if touch.button == "left" and self.selected_element:
-        #     self.simulationg_grid.place_particles(
-        #         touch.pos,
-        #         self.shape,
-        #         self.cursor_width,
-        #         self.cursor_height,
-        #         self.selected_element,
-        #     )
-        # elif touch.button == "middle" or (
-        #     "alt" in self.modifiers and touch.button == "left"
-        # ):
-        #     particle = self.simulation_grid.get_particle_at(*touch.pos)
-        #     if particle:
-        #         self.selected_element = particle["element_id"]
-        # if hasattr(particle, "color"):
-        #     self.cursor_color = [*particle.color[:3], 0.7]
-        # Logger.debug(f"Sampled element: {self.selected_element}")
+        # Grab the touch so we receive move and up events
+        touch.grab(self)
+
+        # Store initial touch info
+        touch.ud["cursor_dragging"] = True
+
+        # Handle initial placement if left click with selected element
+        if touch.button == "left" and self.selected_element:
+            self.simulation_grid.place_particles(
+                touch.pos,
+                self.shape,
+                self.cursor_width,
+                self.cursor_height,
+                self.selected_element,
+            )
+
+        return True
 
     def on_touch_move(self, touch):
         """Handle touch/mouse move events."""
         if self._modal_open:
             return
 
+        # Only handle if we grabbed this touch
+        if touch.grab_current != self:
+            return
+
         self.current_pos = touch.pos
         self._update_position_and_hud(touch.pos)
 
+        # Continue placing particles while dragging
         if (
             self.simulation_grid
             and self.simulation_grid.collide_point(*touch.pos)
             and touch.button == "left"
             and self.selected_element
+            and touch.ud.get("cursor_dragging", False)
         ):
             self.simulation_grid.place_particles(
                 touch.pos,
@@ -226,16 +244,28 @@ class SimulationCursor(Widget):
                 self.selected_element,
             )
 
+        return True
+
     def on_touch_up(self, touch):
         """Handle touch/mouse up events."""
+        if touch.grab_current != self:
+            return
+
+        # Clean up
+        touch.ud.pop("cursor_dragging", None)
         self.modifiers = []
 
-    def on_scroll(self, window, x, y, dx, dy):
+        # Ungrab the touch
+        touch.ungrab(self)
+
+        return True
+
+    def on_scroll(self, window, x, y, scroll_x, scroll_y):
         """Handle scroll events."""
         if self._modal_open:
             return
 
-        delta = dy * 2
+        delta = scroll_y * 30
         if "ctrl" in self.modifiers:
             self.cursor_width = max(min(self.cursor_width + delta, 100), 2)
         elif "shift" in self.modifiers:
@@ -244,14 +274,19 @@ class SimulationCursor(Widget):
             self.cursor_width = self.cursor_height = max(
                 min(self.cursor_width + delta, 100), 2
             )
+        self.update_cursor()
+        return True
 
     def _update_position_and_hud(self, pos):
         """Update cursor position and HUD information."""
-        cursor_pixel_width = (self.cursor_width / self.pixel_size + 2) * self.pixel_size
-        cursor_pixel_height = (
-            self.cursor_height / self.pixel_size + 2
-        ) * self.pixel_size
-        self.pos = (pos[0] - cursor_pixel_width / 2, pos[1] - cursor_pixel_height / 2)
+        cursor_world_width = self.cursor_width
+        cursor_world_height = self.cursor_height
+
+        # Center the cursor on the mouse position
+        self.pos = (pos[0] - cursor_world_width / 2, pos[1] - cursor_world_height / 2)
+
+        # Update the mesh position to match
+        self.render_cursor()
 
         if not self.simulation_grid or not self.hud:
             return
@@ -265,7 +300,10 @@ class SimulationCursor(Widget):
                 self.hud.text = (
                     f"Element: {element_map[particle_data['element_id']]}\n"
                     f"Temperature: {particle_data['temperature']:.1f}°C\n"
-                    f"State: {STATES[particle_data['state']]}"
+                    f"State: {STATES[particle_data['state']]}\n"
+                    f"Cursor Position: ({int(pos[0])}, {int(pos[1])})\n"
+                    f"Particle Position: ({particle_data['x']}, {particle_data['y']})\n"
+                    f"Particle Velocity: ({particle_data['velocity_x']:.1f}, {particle_data['velocity_y']:.1f})\n"
                 )
             else:
                 self.hud.text = f"Cursor: {self.shape} ({int(self.cursor_width)}x{int(self.cursor_height)})"
@@ -281,7 +319,7 @@ class SimulationCursor(Widget):
 
         self.canvas.clear()
         with self.canvas:
-            Color(1, 1, 1, 1)
+            Color(*self.cursor_color)
             PushMatrix()
             Translate(self.x, self.y)
             self.canvas.add(self.cursor_mesh)
@@ -310,6 +348,8 @@ class SimulationCursor(Widget):
     def on_keyboard(self, window, key, scancode, codepoint, modifier):
         """Handle keyboard input."""
         # Shape selection
+        self.modifiers = list(modifier)
+
         shape_map = {"q": "square", "e": "ellipse", "r": "triangle"}
         if codepoint in shape_map:
             self.shape = shape_map[codepoint]
@@ -325,8 +365,7 @@ class SimulationCursor(Widget):
                 self.cursor_width = self.cursor_height = max(
                     min(self.cursor_width + delta, 100), 2
                 )
-
-    # Bind keyboard and scroll events at the class level
+        return
 
 
 Factory.register("SimulationCursor", cls=SimulationCursor)

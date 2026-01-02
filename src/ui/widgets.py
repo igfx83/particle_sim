@@ -1,14 +1,16 @@
 # pyright: reportAttributeAccessIssue=false
 # pyright: reportOptionalContextManager=false
 # pyright: reportOptionalMemberAccess=false
-from engine.components.gravity import update_gravity
+import random
+
 import numpy as np
+from typing import Tuple
 
 # import pymunk
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.factory import Factory
-from kivy.graphics import PopMatrix, PushMatrix, Mesh
+from kivy.graphics import Mesh, PopMatrix, PushMatrix
 from kivy.logger import Logger
 from kivy.properties import (
     ColorProperty,
@@ -20,21 +22,25 @@ from kivy.uix.label import Label
 from kivy.uix.label import Label as PopupLabel
 from kivy.uix.popup import Popup
 from kivy.uix.widget import Widget
+from numpy.typing import NDArray
 
+from engine.components.gravity import update_gravity
+
+# from kivy.uix.boxlayout import BoxLayout
 # from scipy.signal import convolve2d
 
 
 class BackgroundColor:
-    background_color = ListProperty([1, 1, 1, 1])
+    background_color: ListProperty = ListProperty([1, 1, 1, 1])
 
 
 class PickerLabel(Label):
-    background_color = ColorProperty([0.9, 0.9, 0.9, 1])
-    index = NumericProperty(0)
+    background_color: ColorProperty = ColorProperty([0.9, 0.9, 0.9, 1])
+    r: NumericProperty = NumericProperty(0)
 
     def __init__(self, **kwargs):
         super(PickerLabel, self).__init__(**kwargs)
-        self.bind(index=self._update_index)
+        self.bind()
 
     def _update_index(self, instance, value):
         column = self.parent
@@ -45,7 +51,7 @@ class PickerLabel(Label):
     def on_color_touch(self, touch):
         if self.collide_point(*touch.pos) and not self.text:
             Logger.info(f"Clicked color: {self.background_color}")
-            popup = Popup(
+            popup: Popup = Popup(
                 title="Color Value",
                 content=PopupLabel(text=f"RGB: {self.background_color}"),
                 size_hint=(0.3, 0.3),
@@ -64,6 +70,7 @@ class RippleButton(TouchRippleBehavior, Label):
         if self.collide_point(*touch.pos):
             # Logger.debug(f"Touch down at: {touch.pos}")
             self.ripple_show(touch)
+            return True
         return super(RippleButton, self).on_touch_down(touch)
 
     def on_touch_up(self, touch):
@@ -74,7 +81,7 @@ class RippleButton(TouchRippleBehavior, Label):
             if self.app is None:
                 return
             self.app.open_modal()
-            # return True
+            return True
         return super(RippleButton, self).on_touch_up(touch)
 
 
@@ -82,19 +89,104 @@ STATES = {"solid": 0, "liquid": 1, "gas": 2}
 
 
 class SimulationGrid(Widget):
-    def __init__(self, pixel_size=4, **kwargs):
+    def __init__(self, pixel_size: int = 4, **kwargs):
         super().__init__(**kwargs)
 
-        self.pixel_size = pixel_size
+        self._edge_mode: int = 0
+        self.pixel_size: int = pixel_size
         self.on_resized = None
-        self.is_initialized = False
-        self.is_ready = False
+        self.is_initialized: bool = False
+        self.is_ready: bool = False
 
         # Element definitions (map element names to IDs)
         self.element_map: dict = {}
-        self.element_properties = {}
+        self.element_properties: dict = {}
+        self.particle_texture = None
+        self.texture_data = None
+        self.mesh: Mesh | None = None
+        self._render_arrays_allocated: bool = False
+        self._max_allocated_particles: int = 0
+        # self._temp_positions = None
+        # self._temp_colors = None
+        self._temp_indices = None
+        self._dirty_texture: bool = False
+
         self._init_elements()
         Clock.schedule_once(self._check_initialization, 0.1)
+        self._color_map = self._build_material_colors()
+
+    def _build_material_colors(self):
+        """Build a safe, oversized color lookup table"""
+        max_id = 1000
+
+        # Create lookup: index 0 = empty, 1-N = materials
+        colors: NDArray = np.zeros((max_id + 1, 4), dtype=np.uint8)
+        colors[0] = [0, 0, 0, 0]  # transparent (for -1 → 0)
+
+        # Fill known materials
+        idx: int = 0
+        for name, elem_id in self.element_map.items():
+            if elem_id is None:
+                # Auto-assign if missing
+                elem_id = idx
+                self.element_map[name] = elem_id
+            idx += 1
+            props = self.element_properties[elem_id][1]
+            color = props.get("intrinsic_properties", {}).get(
+                "color", [1.0, 1.0, 0.0, 1.0]
+            )
+            rgba = np.array(color[:4], dtype=np.float32)
+            rgba[:4] *= 255
+            # rgba[3] *= 255
+            colors[elem_id + 1] = rgba.astype(np.uint8)
+
+        Logger.info(f"Built color map with {len(colors)} entries (max ID: {max_id})")
+        return colors
+
+    def switch_edge_mode(self, new_mode):
+        self._edge_mode = new_mode
+        print(f"Switching edge mode → {new_mode}")
+
+        # Force rebuild to eliminate ghost grid cells
+        self.rebuild_spatial_grid()
+
+        # Ensure all particles are written to the grid at their current buffer positions
+        buffer = self.buffers[0]
+        particles = buffer["particles"]
+        spatial_grid = buffer["spatial_grid"]
+        count = buffer["particle_count"]
+
+        for i in range(count):
+            if not particles["active"][i]:
+                continue
+            x = int(particles["x"][i])
+            y = int(particles["y"][i])
+            # x = particles["x"][i]
+            # y = particles["y"][i]
+            if 0 <= x < self.grid_width and 0 <= y < self.grid_height:
+                spatial_grid[x, y] = i
+
+        # Apply velocity nudge to active particles
+        active_mask = np.zeros(len(particles["active"]), dtype=np.bool_)
+        active_mask[:count] = particles["active"][:count]
+        particles["velocity_y"][active_mask] -= 0.5  # Nudge downward
+
+        # Flag so gravity update can skip damping one frame
+        self.just_switched_edge_mode = True
+
+    def _allocate_render_arrays(self, max_particles):
+        """Allocate rendering arrays once and reuse them"""
+        if max_particles <= self._max_allocated_particles:
+            return  # Already have enough space
+
+        # Only reallocate if we need significantly more space (avoid frequent reallocations)
+        new_size = max(max_particles, int(self._max_allocated_particles * 1.5))
+
+        self._temp_positions = np.empty((new_size, 2), dtype=np.int32)
+        self._temp_colors = np.empty((new_size, 4), dtype=np.uint8)
+        self._temp_indices = np.empty(new_size, dtype=np.int32)
+        self._max_allocated_particles = new_size
+        self._render_arrays_allocated = True
 
     def _init_elements(self):
         """Initialize element mappings"""
@@ -142,6 +234,8 @@ class SimulationGrid(Widget):
 
         self.is_ready = True
 
+        # Clock.schedule_interval(lambda dt: self.debug_spatial_grid(limit=20), 3.0)
+
         Logger.debug("Simulation initialization complete")
 
     def wait_for_ready(self, timeout=5.0):
@@ -167,6 +261,7 @@ class SimulationGrid(Widget):
             ("temperature", np.float32),
             ("mass", np.float32),
             ("density", np.float32),
+            ("drag_coeff", np.float32),
             ("state", np.int32),
             ("velocity_x", np.float32),
             ("velocity_y", np.float32),
@@ -175,8 +270,31 @@ class SimulationGrid(Widget):
             ("melting", bool),
             ("color", np.float32, 4),
         ]
+
+        fall_dtype = np.dtype(
+            [
+                ("fall_old_x", np.int32),
+                ("fall_old_y", np.int32),
+                ("fall_new_x", np.int32),
+                ("fall_new_y", np.int32),
+                ("fall_mask", np.bool_),
+            ]
+        )
+
+        slide_dtype = np.dtype(
+            [
+                ("slide_old_x", np.int32),
+                ("slide_old_y", np.int32),
+                ("slide_new_x", np.int32),
+                ("slide_new_y", np.int32),
+                ("slide_mask", np.bool_),
+            ]
+        )
+
         return {
             "particles": np.zeros(max_particles, dtype=dtype),
+            "fall_movement": np.zeros(max_particles, dtype=fall_dtype),
+            "slide_movement": np.zeros(max_particles, dtype=slide_dtype),
             "spatial_grid": np.full(
                 (self.grid_width, self.grid_height), -1, dtype=np.int32
             ),
@@ -213,13 +331,16 @@ class SimulationGrid(Widget):
             props = self.element_properties[element_id][1]
             intrinsic = props.get("intrinsic_properties", {})
             dynamic = props.get("dynamic_properties", {})
+            self.buffers[0]["particles"]["drag_coeff"][idx] = intrinsic.get(
+                "drag_coeff", None
+            )
             self.buffers[0]["particles"]["mass"][idx] = intrinsic.get("mass", 1.0)
             self.buffers[0]["particles"]["temperature"][idx] = dynamic.get(
                 "temperature", 20.0
             )
-            self.buffers[0]["particles"]["state"][idx] = STATES[
-                intrinsic.get("state", 0)
-            ]  # 0=solid,1=liquid,2=gas
+            self.buffers[0]["particles"]["state"][idx] = STATES.get(
+                intrinsic.get("state", "solid"), 0
+            )  # 0=solid,1=liquid,2=gas
 
             # Set color
             if color:
@@ -235,30 +356,44 @@ class SimulationGrid(Widget):
                 )
             # self.pymunk_space.add(pymunk.Circle(radius=4))
 
+        self.buffers[0]["particles"]["velocity_x"][idx] = random.uniform(-0.1, 0.1)
+        self.buffers[0]["particles"]["velocity_y"][idx] = random.uniform(
+            -0.5, -0.1
+        )  # Small downward velocity
+
         # Update spatial grid
         self.buffers[0]["spatial_grid"][x, y] = idx
         self.buffers[0]["particle_count"] += 1
+
+        if not self._dirty_texture:
+            self.mark_particles_dirty()
 
         return True
 
     def remove_particle(self, particle_idx):
         """Remove a particle"""
-        if not (0 <= particle_idx < self.particle_count):
+        buffer = self.buffers[0]
+        if not (0 <= particle_idx < buffer["particle_count"]):
             return False
-        if not self.active[particle_idx]:
+        if not buffer["particles"]["active"][particle_idx]:
             return False
 
         # Clear spatial grid
-        x, y = self.x_coords[particle_idx], self.y_coords[particle_idx]
+        x = buffer["particles"]["x"][particle_idx]
+        y = buffer["particles"]["y"][particle_idx]
+
         if (
             0 <= x < self.grid_width
             and 0 <= y < self.grid_height
-            and self.spatial_grid[x, y] == particle_idx
+            and buffer["spatial_grid"][x, y] == particle_idx
         ):
-            self.spatial_grid[x, y] = -1
+            buffer["spatial_grid"][x, y] = -1
 
         # Mark as inactive
-        self.active[particle_idx] = False
+        buffer["particles"]["active"][particle_idx] = False
+
+        if not self._dirty_texture:
+            self.mark_particles_dirty()
 
         return True
 
@@ -286,11 +421,14 @@ class SimulationGrid(Widget):
         self.buffers[0]["particles"]["y"][particle_idx] = new_y
         self.buffers[0]["spatial_grid"][new_x, new_y] = particle_idx
 
+        if not self._dirty_texture:
+            self.mark_particles_dirty()
+
         return True
 
     def place_particles(self, pos, shape, width, height, element_name):
         """Place multiple particles in a shape"""
-        grid_x = int((pos[0] - self.x) / self.pixel_size)
+        grid_x = (pos[0] - self.x) / self.pixel_size
         grid_y = int((pos[1] - self.y) / self.pixel_size)
         half_w = int(width / self.pixel_size / 2)
         half_h = int(height / self.pixel_size / 2)
@@ -308,7 +446,16 @@ class SimulationGrid(Widget):
 
         return particles_added
 
-    def _is_in_shape(self, x, y, center_x, center_y, shape, half_w, half_h):
+    def _is_in_shape(
+        self,
+        x: int,
+        y: int,
+        center_x: int,
+        center_y: int,
+        shape: Tuple,
+        half_w: float,
+        half_h: float,
+    ):
         """Check if point is inside the given shape"""
         if shape == "ellipse":
             if half_w <= 0 or half_h <= 0:
@@ -329,611 +476,76 @@ class SimulationGrid(Widget):
 
         return True
 
-    # def update(self, dt):
-    #     """
-    #     Fixed update method that properly modifies particle positions
-    #     """
-    #     time_step = dt
-    #
-    #     # Initialize physics system only once (add this to __init__ instead)
-    #     if not hasattr(self, "gravity_physics"):
-    #         from engine.components.gravity import OptimizedGravityPhysics
-    #
-    #         self.gravity_physics = OptimizedGravityPhysics(
-    #             self.grid_width, self.grid_height, self.buffers[0]["particles"].size
-    #         )
-    #
-    #     # Get particle count and check if we have any particles
-    #     particle_count = self.buffers[0]["particle_count"]
-    #     if particle_count == 0:
-    #         self.render()
-    #         return
-    #
-    #     # Get active particles
-    #     active_mask = self.buffers[0]["particles"]["active"][:particle_count]
-    #     active_count = np.sum(active_mask)
-    #
-    #     if active_count == 0:
-    #         self.render()
-    #         return
-    #
-    #     print(f"Updating {active_count} active particles")
-    #
-    #     # === GRAVITY PHYSICS ===
-    #     # Step 1: Apply gravity to velocities
-    #     from engine.components.gravity import apply_gravity_vectorized
-    #
-    #     apply_gravity_vectorized(
-    #         self.buffers[0]["particles"]["velocity_y"][:particle_count],
-    #         active_mask,
-    #         time_step,
-    #     )
-    #
-    #     # Step 2: Process falling with collision detection
-    #     from engine.components.gravity import batch_gravity_fall_fixed
-    #
-    #     fall_count = batch_gravity_fall_fixed(
-    #         self.buffers[0]["particles"]["x"][:particle_count],
-    #         self.buffers[0]["particles"]["y"][:particle_count],
-    #         self.buffers[0]["particles"]["velocity_y"][:particle_count],
-    #         active_mask,
-    #         self.buffers[0]["spatial_grid"],
-    #         self.grid_height,
-    #         time_step,
-    #     )
-    #
-    #     # Step 3: Handle diagonal sliding for blocked particles
-    #     from engine.components.gravity import diagonal_slide_fixed
-    #
-    #     slide_count = diagonal_slide_fixed(
-    #         self.buffers[0]["particles"]["x"][:particle_count],
-    #         self.buffers[0]["particles"]["y"][:particle_count],
-    #         self.buffers[0]["particles"]["velocity_x"][:particle_count],
-    #         self.buffers[0]["particles"]["velocity_y"][:particle_count],
-    #         active_mask,
-    #         self.buffers[0]["spatial_grid"],
-    #         self.grid_width,
-    #         self.grid_height,
-    #         self.buffers[0]["particles"]["state"][:particle_count],
-    #         time_step,
-    #     )
-    #
-    #     if fall_count > 0 or slide_count > 0:
-    #         print(f"Physics: {fall_count} particles fell, {slide_count} particles slid")
-    #
-    #     # === THERMAL UPDATES (simplified) ===
-    #     hot_mask = (
-    #         self.buffers[0]["particles"]["temperature"][:particle_count] > 25.0
-    #     ) & active_mask
-    #     if np.any(hot_mask):
-    #         self.buffers[0]["particles"]["temperature"][:particle_count][hot_mask] -= (
-    #             0.1 * time_step
-    #         )
-    #
-    #     # === COMBUSTION ===
-    #     combustible = (
-    #         self.buffers[0]["particles"]["temperature"][:particle_count] > 100.0
-    #     ) & active_mask
-    #     if np.any(combustible):
-    #         self.buffers[0]["particles"]["burning"][:particle_count][combustible] = True
-    #         self.buffers[0]["particles"]["temperature"][:particle_count][
-    #             combustible
-    #         ] = 800.0
-    #         burning_indices = np.where(combustible)[0]
-    #         self.buffers[0]["particles"]["color"][burning_indices] = [
-    #             1.0,
-    #             0.5,
-    #             0.0,
-    #             1.0,
-    #         ]
-    #
-    #     self.render()
-    #
-    def update(self, dt):
-        stats = update_gravity(self, self.buffers[0])
+    def update(self, dt: float):
+        """Modified update to mark dirty when physics runs"""
+        # print(
+        #     f"Update called: particle_count={self.buffers[0]['particle_count']}, dirty={self._dirty_texture}"
+        # )
+        # print(
+        #     f"Update called: particle_count={self.buffers[0]['particle_count']}, dirty={self._dirty_texture}"
+        # )
+        # print(f"  Widget: pos=({self.x},{self.y}) size=({self.width},{self.height})")
+
+        if self.buffers[0]["particle_count"] > 0:
+            self.mark_particles_dirty()
+
+        stats = update_gravity(self, self.buffers[0], dt)
         self.render()
 
-        # Periodic compaction
-        # if not hasattr(self, "frame_counter"):
-        #     self.frame_counter = 0
-        # self.frame_counter += 1
-        # if self.frame_counter % 60 == 0:
-        #     self.compact_arrays()
+        if hasattr(self, "just_switched_edge_mode") and self.just_switched_edge_mode:
+            self.just_switched_edge_mode = False
 
-    # Apply gravity to velocities ( g=pixel scale)
-    # g = 4.0
-    # self.buffers[0]["particles"]["velocity_y"][active_indices] -= g * time_step
-    #
-    # # Filter solid particles
-    # solid_mask = (
-    #     self.buffers[0]["particles"]["state"][: self.buffers[0]["particle_count"]][
-    #         active_mask
-    #     ]
-    #     == 0
-    # )
-    # solid_indices = active_indices[solid_mask]
+        # In your update method
+        # if random.randint(0, 180) == 0:  # Every ~3  F821
+        #     self.validate_spatial_grid()
 
-    # === PHYSICS UPDATES ===
-
-    # Vectorized straight fall (as before, but modulated by velocity)
-    # can_fall = self._can_particles_fall(solid_indices)
-    # falling_particles = solid_indices[can_fall]
-    #
-    # if len(falling_particles) > 0:
-    #     old_x = self.buffers[0]["particles"]["x"][falling_particles]
-    #     old_y = self.buffers[0]["particles"]["y"][falling_particles].copy()
-    #     new_y = np.round(
-    #         old_y + self.buffers[0]["particles"]["velocity_y"][falling_particles]
-    #     ).astype(np.int16)
-    #
-    #     # Clip to bounds
-    #     new_y = np.maximum(new_y, 0)
-    #     valid_fall = new_y < old_y
-    #     falling_particles = falling_particles[valid_fall]
-    #     old_x, old_y, new_y = (
-    #         old_x[valid_fall],
-    #         old_y[valid_fall],
-    #         new_y[valid_fall],
-    #     )
-    #
-    #     if len(falling_particles) > 0:
-    #         self.buffers[0]["spatial_grid"][old_x, old_y] = -1
-    #         self.buffers[0]["spatial_grid"][old_x, new_y] = falling_particles
-    #         self.buffers[0]["particles"]["y"][falling_particles] = new_y
-    #
-    # # For blocked solids: Diagonal slide for natural piling (loop over sorted for no conflicts)
-    # blocked_indices = solid_indices[~can_fall]
-    # if len(blocked_indices) > 0:
-    #     # Sort by y descending (top-first, y high to low) to allow upper particles to slide after lower
-    #     sort_order = np.argsort(-self.buffers[0]["particles"]["y"][blocked_indices])
-    #     blocked_indices = blocked_indices[sort_order]
-    #
-    #     for idx in blocked_indices:
-    #         x, y = (
-    #             self.buffers[0]["particles"]["x"][idx],
-    #             self.buffers[0]["particles"]["y"][idx],
-    #         )
-    #         if y <= 0:
-    #             continue
-    #         below_y = y - 1
-    #
-    #         # Randomize direction preference for natural look
-    #         dirs = [-1, 1] if random.random() < 0.5 else [1, -1]
-    #
-    #         moved = False
-    #         for dx in dirs:
-    #             new_x = int(x) + dx  # Cast to int to avoid uint16 issues
-    #             # Check bounds *before* moving
-    #             if (
-    #                 0 <= new_x < self.grid_width
-    #                 and below_y >= 0
-    #                 and self.buffers[0]["spatial_grid"][new_x, below_y] == -1
-    #             ):
-    #                 self.move_particle(idx, new_x, below_y)
-    #                 moved = True
-    #                 break
-    #
-    #         if moved:
-    #             # Dampen velocity on slide
-    #             self.buffers[0]["particles"]["velocity_y"][idx] *= 0.8
-    #
-    # # === THERMAL UPDATES ===
-    # hot_mask = (
-    #     self.buffers[0]["particles"]["temperature"][
-    #         : self.buffers[0]["particle_count"]
-    #     ]
-    #     > 25.0
-    # )
-    # hot_particles = active_mask & hot_mask
-    # if np.any(hot_particles):
-    #     self.buffers[0]["particles"]["temperature"][
-    #         : self.buffers[0]["particle_count"]
-    #     ][hot_particles] -= 0.1 * dt
-    #
-    # # === COMBUSTION ===
-    # combustible = (
-    #     self.buffers[0]["particles"]["temperature"][
-    #         : self.buffers[0]["particle_count"]
-    #     ]
-    #     > 100.0
-    # ) & active_mask
-    # if np.any(combustible):
-    #     self.buffers[0]["burning"][: self.buffers[0]["particle_count"]][
-    #         combustible
-    #     ] = True
-    #     self.self.buffers[0]["particles"]["temperature"][
-    #         : self.buffers[0]["particle_count"]
-    #     ][combustible] = 800.0
-    #     burning_indices = np.where(combustible)[0]
-    #     self.self.buffers[0]["particles"]["color"][burning_indices] = [
-    #         1.0,
-    #         0.5,
-    #         0.0,
-    #         1.0,
-    #     ]  # Orange
-
-    # Integrate batch processing
-    # self._batch_process_burning_particles()
-    # self._batch_process_conduction()
-
-    # def _spawn_combustion_products(self, x, y, particle):
-    #     """Spawn combustion products"""
-    #     elements = self.app.elements
-    #
-    #     for product in particle.combustion_products:
-    #         if product["id"] in elements:
-    #             new_particle = Particle(product["id"], x=x, y=y)
-    #             self.grid[x, y] = new_particle
-    #             self._categorize_particle(new_particle, x, y)
-    #             return  # Only spawn first product for now
-
-    def _categorize_particle(self, idx, x, y):
-        """Categorize particles for optimized batch processing"""
-        element_id = self.element_ids[idx]
-        if element_id in self.element_properties:
-            props = self.element_properties[element_id][1]
-            # Simplified checks (adjust based on your needs)
-            if self.burning[idx] or props.get("ignition_temperature", 0) > 0:
-                if (x, y) not in self._burning_particles:
-                    self._burning_particles.append((x, y))
-            if props.get("heat_conductivity", 0) > 0:
-                if (x, y) not in self._conductive_particles:
-                    self._conductive_particles.append((x, y))
-            if props.get("reactivity", {}).get("compatibility"):
-                if (x, y) not in self._reactive_particles:
-                    self._reactive_particles.append((x, y))
-
-    def _batch_process_burning_particles(self):
-        """Process all burning particles in batch"""
-        if not self._burning_particles:
-            return
-
-        to_remove = []
-        for x, y in list(self._burning_particles):
-            idx = self.spatial_grid[x, y]
-            if idx == -1 or not self.active[idx]:
-                to_remove.append((x, y))
+    def debug_spatial_grid(self, limit=10):
+        buffer = self.buffers[0]
+        p = buffer["particles"]
+        s = buffer["spatial_grid"]
+        n = buffer["particle_count"]
+        print("---- Grid Snapshot ----")
+        for i in range(min(limit, n)):
+            if not p["active"][i]:
                 continue
-
-            # Simplified ignition check
-            if self._should_ignite(idx, x, y):
-                self.burning[idx] = True
-                self.temperatures[idx] = self.element_properties[self.element_ids[idx]][
-                    1
-                ].get("flame_temperature", 800.0)
-                self.colors[idx] = [1.0, 0.8, 0.4, 0.8]
-
-            if self.burning[idx]:
-                # Simplified burn-out logic (e.g., remove after burning)
-                if self.temperatures[idx] > 1000.0:  # Arbitrary threshold
-                    self.remove_particle(idx)
-                    to_remove.append((x, y))
-
-        for pos in to_remove:
-            self._burning_particles.remove(pos)
-
-    def _should_ignite(self, idx, x, y):
-        """Check if particle should ignite"""
-        props = self.element_properties[self.element_ids[idx]][1]
-        return (
-            props.get("ignition_temperature", 0) > 0
-            and self.temperatures[idx] >= props.get("ignition_temperature", 0)
-            and not self.burning[idx]
-            # Add air_grid oxygen check when implemented
-        )
-
-    def _propagate_heat_fast(self, x, y, particle):
-        """Fast heat propagation using numpy operations"""
-        if not hasattr(particle, "propagation"):
-            return
-
-        heat_amount = particle.flame_temperature * 0.1
-
-        # Get neighbor positions
-        neighbors = [
-            (x + dx, y + dy)
-            for dx, dy in self._neighbor_offsets
-            if 0 <= x + dx < self.grid.shape[0] and 0 <= y + dy < self.grid.shape[1]
-        ]
-
-        for nx, ny in neighbors:
-            neighbor = self.grid[nx, ny]
-            if neighbor and hasattr(neighbor, "temperature"):
-                heat_transfer = min(
-                    heat_amount * 0.25,
-                    (particle.temperature - neighbor.temperature) * 0.1,
+            x, y = int(p["x"][i]), int(p["y"][i])
+            vy = p["velocity_y"][i]
+            below = s[x, y - 1] if 0 <= y - 1 < s.shape[1] else "OOB"
+            print(f"i={i:3} (x={x:3}, y={y:3}) vy={vy:6.2f} below={below}")
+            if y == 0 and vy != 0 and self._edge_mode == 0:
+                print(
+                    f"WARNING: Particle {i} at y=0 with non-zero vy={vy} in Normal mode"
                 )
-                if heat_transfer > 0:
-                    neighbor.temperature += heat_transfer / neighbor.specific_heat
-
-    def _batch_process_conduction(self):
-        """Vectorized heat and electrical conduction"""
-        if not self._conductive_particles:
-            return
-
-        # Process in chunks to avoid memory issues
-        chunk_size = 1000
-        for i in range(0, len(self._conductive_particles), chunk_size):
-            chunk = self._conductive_particles[i : i + chunk_size]
-            self._process_conduction_chunk(chunk)
-
-    def _process_conduction_chunk(self, particle_positions):
-        """Process conduction for a chunk of particles"""
-        for x, y in particle_positions:
-            particle = self.grid[x, y]
-            if not particle:
-                continue
-
-            # Get valid neighbors
-            neighbors = [
-                (x + dx, y + dy)
-                for dx, dy in self._neighbor_offsets
-                if (
-                    0 <= x + dx < self.grid.shape[0]
-                    and 0 <= y + dy < self.grid.shape[1]
-                    and self.grid[x + dx, y + dy] is not None
-                )
-            ]
-
-            if not neighbors:
-                continue
-
-            # Batch process heat transfer
-            for nx, ny in neighbors:
-                neighbor = self.grid[nx, ny]
-                if not neighbor:
-                    continue
-
-                # Heat conduction
-                temp_diff = particle.temperature - neighbor.temperature
-                if abs(temp_diff) > 0.1:  # Skip tiny transfers
-                    heat_transfer = (
-                        particle.heat_conductivity
-                        * particle.propagation.get("heat_conduction_rate", 0.1)
-                        * temp_diff
-                        * 0.1
-                    )
-                    if abs(heat_transfer) > 0.01:
-                        neighbor.temperature += heat_transfer / neighbor.specific_heat
-                        particle.temperature -= heat_transfer / particle.specific_heat
-
-    def _batch_process_interactions(self):
-        """Process particle interactions using spatial partitioning"""
-        if not self._reactive_particles:
-            return
-
-        # Clear interaction cells
-        self._interaction_cells.clear()
-
-        # Partition reactive particles
-        for x, y in self._reactive_particles:
-            cell_x = x // self._interaction_grid_size
-            cell_y = y // self._interaction_grid_size
-            self._interaction_cells[(cell_x, cell_y)].append((x, y))
-
-        # Process interactions within each cell and adjacent cells
-        for (cell_x, cell_y), particles in self._interaction_cells.items():
-            # Check adjacent cells too
-            for dx in [-1, 0, 1]:
-                for dy in [-1, 0, 1]:
-                    adj_cell = (cell_x + dx, cell_y + dy)
-                    if adj_cell in self._interaction_cells:
-                        self._process_cell_interactions(
-                            particles, self._interaction_cells[adj_cell]
-                        )
-
-    def _process_cell_interactions(self, particles1, particles2):
-        """Process interactions between particles in two cells"""
-        for x1, y1 in particles1:
-            particle1 = self.grid[x1, y1]
-            if not particle1:
-                continue
-
-            for x2, y2 in particles2:
-                if x1 == x2 and y1 == y2:  # Same particle
-                    continue
-
-                # Only check adjacent particles
-                if abs(x1 - x2) > 1 or abs(y1 - y2) > 1:
-                    continue
-
-                particle2 = self.grid[x2, y2]
-                if particle2:
-                    self._evaluate_interaction_fast(
-                        x1, y1, particle1, x2, y2, particle2
-                    )
-
-    def _evaluate_interaction_fast(self, x1, y1, p1, x2, y2, p2):
-        """Fast interaction evaluation with early exits"""
-        if not hasattr(p1, "reactivity") or p2.id not in p1.reactivity.get(
-            "compatibility", {}
-        ):
-            return
-
-        reaction = p1.reactivity["compatibility"][p2.id]
-        thresholds = p1.reactivity.get("thresholds", {})
-
-        # Quick temperature/pressure check
-        if (
-            p1.temperature < thresholds.get("temperature", [0])[0]
-            or p1.pressure < thresholds.get("pressure", [0])[0]
-        ):
-            return
-
-        # Probability check
-        if np.random.random() >= reaction.get("reaction_probability", 0):
-            return
-
-        # Apply reaction effects (simplified)
-        self._apply_reaction_effects(p1, p2, reaction)
-
-    def _apply_reaction_effects(self, p1, p2, reaction):
-        """Apply reaction effects efficiently"""
-        # Apply deltas to particles
-        for key, value in reaction.get("deltas", {}).get("self", {}).items():
-            if hasattr(p1, key):
-                if isinstance(value, str) and value.startswith("+"):
-                    setattr(p1, key, getattr(p1, key) + float(value[1:]))
-                else:
-                    setattr(p1, key, value)
-
-    def apply_force(self, x, y, reaction):
-        force = reaction["force_magnitude"]
-        radius = reaction["blast_radius"]
-        for dx in range(-int(radius), int(radius) + 1):
-            for dy in range(-int(radius), int(radius) + 1):
-                nx, ny = x + dx, y + dy
-                if 0 <= nx < self.grid.shape[0] and 0 <= ny < self.grid.shape[1]:
-                    distance = ((dx**2 + dy**2) ** 0.5) + 0.1
-                    if distance <= radius:
-                        impulse = force / distance
-                        if self.grid[nx, ny]:
-                            self.grid[nx, ny].velocity[0] += impulse * dx
-                            self.grid[nx, ny].velocity[1] += impulse * dy
-                        if (nx, ny) in self.rigid_bodies:
-                            body = self.rigid_bodies[(nx, ny)]
-                            body.apply_impulse_at_local_point(
-                                (impulse * dx, impulse * dy), (0, 0)
-                            )
-
-    def _can_particles_fall(self, particle_indices):
-        if particle_indices.size == 0:
-            return np.array([], dtype=bool)
-
-        # Get coordinates for active particles
-        xs = self.buffers[0]["particles"]["x"][particle_indices]
-        ys = self.buffers[0]["particles"]["y"][particle_indices]
-        below_ys = ys - 1
-
-        # Full bounds check: ensure x, y are within grid and below_y is valid
-        valid_coords = (
-            (xs >= 0)
-            & (xs < self.grid_width)
-            & (ys > 0)
-            & (ys < self.grid_height)
-            & (below_ys >= 0)
-        )
-
-        # Initialize can_fall array
-        can_fall = np.zeros(len(particle_indices), dtype=bool)
-
-        # Process only valid particles
-        valid_indices = np.where(valid_coords)[0]
-        if len(valid_indices) > 0:
-            # Check if space below is empty
-            below_empty = (
-                self.buffers[0]["spatial_grid"][
-                    xs[valid_indices], below_ys[valid_indices]
-                ]
-                == -1
-            )
-            can_fall[valid_indices] = below_empty
-
-        return can_fall
-
-    def propagate_conductivity_vectorized(self):
-        for x, y in (
-            self.buffers[0]["particles"]["x"],
-            self.buffers[0]["particles"]["y"],
-        ):
-            particle = self.buffers[0]["spatial_grid"][x, y]
-            neighbors = [
-                (x + dx, y + dy)
-                for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]
-                if 0 <= x + dx < self.grid.shape[0] and 0 <= y + dy < self.grid.shape[1]
-            ]
-            for nx, ny in neighbors:
-                if self.buffers[0]["spatial_grid"][nx, ny]:
-                    neighbor = self.buffers[0]["spatial_grid"][nx, ny]
-                    heat_transfer = (
-                        particle.heat_conductivity
-                        * particle.propagation["heat_conduction_rate"]
-                        * (particle.temperature - neighbor.temperature)
-                        * 0.1
-                    )
-                    neighbor.temperature += heat_transfer / neighbor.specific_heat
-                    particle.temperature -= heat_transfer / particle.specific_heat
 
     def _setup_texture_rendering(self, width, height):
-        """Initialize texture rendering"""
+        """Initialize texture rendering with dirty tracking"""
         from kivy.graphics.texture import Texture
 
-        self.particle_texture = Texture.create(size=(width, height))
-        self.particle_texture.mag_filter = "nearest"
-        self.particle_texture.min_filter = "nearest"
+        # Only recreate texture if dimensions changed
+        if (
+            self.particle_texture is None
+            or self.particle_texture.width != width
+            or self.particle_texture.height != height
+        ):
+            self.particle_texture = Texture.create(size=(width, height))
+            self.particle_texture.mag_filter = "nearest"
+            self.particle_texture.min_filter = "nearest"
 
-        # Pre-allocate texture data
-        self.texture_data = np.zeros((height, width, 4), dtype=np.uint8)
+            # Pre-allocate texture data - keep the same array
+            self.texture_data = np.zeros((height, width, 4), dtype=np.uint8)
+
         self.mesh = self._create_mesh()
-
-    def render(self):
-        if self.particle_texture is None or self.buffers[0]["particle_count"] == 0:
-            return
-
-        # Clear texture
-        self.texture_data.fill(0)
-
-        # Get active particles
-        active_mask = self.buffers[0]["particles"]["active"][
-            : self.buffers[0]["particle_count"]
-        ]
-        active_indices = np.where(active_mask)[0]
-
-        if len(active_indices) == 0:
-            return
-
-        # Vectorized assignment
-        xs = self.buffers[0]["particles"]["x"][active_indices]
-        ys = self.buffers[0]["particles"]["y"][active_indices]
-        colors = (self.buffers[0]["particles"]["color"][active_indices] * 255).astype(
-            np.uint8
-        )  # Shape: (N, 4)
-
-        # Bounds check (optional, but prevents index errors)
-        valid = (xs >= 0) & (xs < self.grid_width) & (ys >= 0) & (ys < self.grid_height)
-        xs, ys, colors = xs[valid], ys[valid], colors[valid]
-
-        xs_int = xs.astype(np.int32)
-        ys_int = ys.astype(np.int32)
-
-        self.texture_data[ys_int, xs_int] = colors
-
-        # Upload to GPU
-        try:
-            self.particle_texture.blit_buffer(
-                self.texture_data.tobytes(), colorfmt="rgba", bufferfmt="ubyte"
-            )
-        except Exception as e:
-            Logger.error(f"Texture upload failed: {e}")
-            return
-
-        self.canvas.clear()
-
-        with self.canvas:
-            PushMatrix()
-            from kivy.graphics import Scale, Translate
-
-            Translate(self.x, self.y)
-            Scale(self.pixel_size, self.pixel_size, 1)
-
-            if self.mesh:
-                w, h = self.grid_width, self.grid_height
-                vertices = [0, 0, 0, 0, w, 0, 1, 0, w, h, 1, 1, 0, h, 0, 1]
-                self.mesh.vertices = vertices
-                self.mesh.texture = self.particle_texture
-                self.canvas.add(self.mesh)
-            PopMatrix()
+        self._dirty_texture = True
 
     def _reset_graph(self):
+        """Remove explicit gc.collect() call"""
         max_particles = self.grid_width * self.grid_height
         self.buffers[0] = self._create_buffer(max_particles)
         self.particle_texture = None
         self.mesh = None
         self._setup_texture_rendering(self.grid_width, self.grid_height)
         self.canvas.clear()
-        import gc
 
-        gc.collect()
         if self.buffers[0]["particle_count"] == 0:
             return True
 
@@ -962,46 +574,86 @@ class SimulationGrid(Widget):
 
     def compact_arrays(self):
         """Remove gaps in particle arrays (call periodically for optimization)"""
-        if self.particle_count == 0:
+        buffer = self.buffers[0]
+        if buffer["particle_count"] == 0:
             return
 
         # Find active particles
-        active_mask = self.active[: self.particle_count]
+        active_mask = buffer["particles"]["active"][: buffer["particle_count"]]
         active_indices = np.where(active_mask)[0]
 
-        if len(active_indices) == self.particle_count:
+        if len(active_indices) == buffer["particle_count"]:
             return  # No gaps to compact
 
         # Clear spatial grid
-        self.spatial_grid.fill(-1)
+        buffer["spatial_grid"].fill(-1)
 
-        # Compact arrays
+        # Compact arrays (copy active to front)
         new_count = len(active_indices)
-
-        self.element_ids[:new_count] = self.element_ids[active_indices]
-        self.x_coords[:new_count] = self.x_coords[active_indices]
-        self.y_coords[:new_count] = self.y_coords[active_indices]
-        self.temperatures[:new_count] = self.temperatures[active_indices]
-        self.masses[:new_count] = self.masses[active_indices]
-        self.colors[:new_count] = self.colors[active_indices]
-        self.burning[:new_count] = self.burning[active_indices]
-        self.melting[:new_count] = self.melting[active_indices]
-        self.velocities_x[:new_count] = self.velocities_x[active_indices]
-        self.velocities_y[:new_count] = self.velocities_y[active_indices]
-        self.active[:new_count] = True
+        buffer["particles"][:new_count] = buffer["particles"][active_indices]
 
         # Clear inactive entries
-        self.active[new_count:] = False
+        buffer["particles"]["active"][new_count:] = False
 
         # Rebuild spatial grid
         for i in range(new_count):
-            x, y = self.x_coords[i], self.y_coords[i]
+            x = int(buffer["particles"]["x"][i])
+            y = int(buffer["particles"]["y"][i])
             if 0 <= x < self.grid_width and 0 <= y < self.grid_height:
-                self.spatial_grid[x, y] = i
+                buffer["spatial_grid"][x, y] = i
 
-        self.particle_count = new_count
+        buffer["particle_count"] = new_count
 
-        Logger.debug(f"Compacted arrays: {len(active_indices)} active particles remain")
+        Logger.debug(f"Compacted arrays: {new_count} active particles remain")
+
+    def rebuild_spatial_grid(self):
+        """Fully rebuild spatial grid from particle positions and active mask."""
+        buffer = self.buffers[0]
+        particles = buffer["particles"]
+        spatial_grid = buffer["spatial_grid"]
+        particle_count = buffer["particle_count"]
+
+        # Clear grid
+        spatial_grid.fill(-1)
+
+        # Refill based on current particle positions
+        for i in range(particle_count):
+            if not particles["active"][i]:
+                continue
+            x = int(particles["x"][i])
+            y = int(particles["y"][i])
+            if 0 <= x < self.grid_width and 0 <= y < self.grid_height:
+                spatial_grid[x, y] = i
+
+    def _update_canvas(self):
+        """Separate canvas update to avoid clearing unnecessarily"""
+        # print("_update_canvas called")
+        # print(f"  mesh exists: {self.mesh is not None}")
+        # print(f"  texture exists: {self.particle_texture is not None}")
+        # print(f"  widget pos: ({self.x}, {self.y})")
+        # print(f"  widget size: ({self.width}, {self.height})")
+
+        if not self.mesh or not self.particle_texture:
+            print("  Skipping - missing mesh or texture")
+            return
+
+        # Only clear and redraw if texture actually changed
+        if self._dirty_texture:
+            self.canvas.clear()
+
+            with self.canvas:
+                PushMatrix()
+                from kivy.graphics import Scale, Translate
+
+                Translate(self.x, self.y)
+                Scale(self.pixel_size, self.pixel_size, 1)
+
+                w, h = self.grid_width, self.grid_height
+                vertices = [0, 0, 0, 0, w, 0, 1, 0, w, h, 1, 1, 0, h, 0, 1]
+                self.mesh.vertices = vertices
+                self.mesh.texture = self.particle_texture
+                self.canvas.add(self.mesh)
+                PopMatrix()
 
     def debug_grid_state(self):
         """Print debug information about the grid state"""
@@ -1062,6 +714,124 @@ class SimulationGrid(Widget):
         mesh.texture = self.particle_texture
         return mesh
 
+    def mark_particles_dirty(self):
+        """Call this when particles move/change to mark texture as needing update"""
+        self._dirty_texture = True
+
+    # def render(self):
+    #     if not self._dirty_texture:
+    #         print("Render skipped - not dirty")
+    #         return
+    #
+    #     print(f"Rendering: particle_count={self.buffers[0]['particle_count']}")
+    #
+    #     # Simple debug render
+    #     self.texture_data.fill(0)
+    #
+    #     grid = self.buffers[0]["spatial_grid"]
+    #     particles = self.buffers[0]["particles"]
+    #
+    #     occupied_cells = 0
+    #     # For each cell with a particle
+    #     for x in range(self.grid_width):
+    #         for y in range(self.grid_height):
+    #             idx = grid[x, y]
+    #             if idx >= 0 and idx < self.buffers[0]["particle_count"]:
+    #                 if particles["active"][idx]:
+    #                     occupied_cells += 1
+    #                     # White pixel
+    #                     self.texture_data[y, x] = [255, 255, 255, 255]
+    #
+    #     print(f"Occupied cells: {occupied_cells}")
+    #     print(f"Texture shape: {self.texture_data.shape}")
+    #     print(f"Grid dimensions: {self.grid_width}x{self.grid_height}")
+    #
+    #     self.particle_texture.blit_buffer(
+    #         self.texture_data.tobytes(),
+    #         colorfmt='rgba',
+    #         bufferfmt='ubyte'
+    #     )
+    #     self.particle_texture.flip_vertical()
+    #     self._update_canvas()
+    #     self._dirty_texture = False
+    #     print("Render complete")
+    #
+    def render(self):
+        """Optimized render method with dirty checking and array reuse"""
+        if (
+            self.particle_texture is None
+            or self.buffers[0]["particle_count"] == 0
+            or not self._dirty_texture
+        ):
+            return
+
+        particle_count = self.buffers[0]["particle_count"]
+
+        # Ensure render arrays are allocated
+        self._allocate_render_arrays(particle_count)
+
+        # Clear texture only once (reuse the same array)
+        self.texture_data.fill(0)
+
+        # Use pre-allocated arrays to avoid repeated allocations
+        particles = self.buffers[0]["particles"]
+        active_slice = particles["active"][:particle_count]
+        active_count = np.sum(active_slice)
+
+        if active_count == 0:
+            self._dirty_texture = False
+            return
+
+        # Reuse pre-allocated arrays instead of creating new ones
+        active_indices_full = np.where(active_slice)[0]
+        active_count = len(active_indices_full)
+        if active_count == 0:
+            self._dirty_texture = False
+            return
+        active_indices = active_indices_full
+
+        # Extract positions and colors in batch (reuse arrays)
+        positions = self._temp_positions[:active_count]
+        colors = self._temp_colors[:active_count]
+
+        positions[:, 0] = particles["x"][active_indices]
+        positions[:, 1] = particles["y"][active_indices]
+
+        # Vectorized color conversion (avoid astype which creates new array)
+        temp_colors = particles["color"][active_indices]
+        np.multiply(temp_colors, 255, out=colors, casting="unsafe")
+
+        # Bounds checking (vectorized)
+        valid_mask = (
+            (positions[:, 0] >= 0)
+            & (positions[:, 0] < self.grid_width)
+            & (positions[:, 1] >= 0)
+            & (positions[:, 1] < self.grid_height)
+        )
+
+        if not np.any(valid_mask):
+            self._dirty_texture = False
+            return
+
+        valid_positions = positions[valid_mask]
+        valid_colors = colors[valid_mask]
+
+        if self.texture_data is not None:
+            # Batch texture update (much faster than individual assignments)
+            self.texture_data[valid_positions[:, 1], valid_positions[:, 0]] = (
+                valid_colors
+            )
+
+        # Upload to GPU only when needed
+        try:
+            self.particle_texture.blit_buffer(
+                self.texture_data.tobytes(), colorfmt="rgba", bufferfmt="ubyte"
+            )
+            self._update_canvas()
+            self._dirty_texture = False  # Mark as clean
+        except Exception as e:
+            Logger.error(f"Texture upload failed: {e}")
+
     def get_stats(self):
         """Get simulation statistics"""
         active_count = np.sum(self.active[: self.particle_count])
@@ -1084,3 +854,44 @@ class SimulationGrid(Widget):
             "burning_particles": burning_count,
             "average_temperature": avg_temp,
         }
+
+    def validate_spatial_grid(self):
+        """Check if spatial grid matches particle positions"""
+        particles = self.buffers[0]["particles"]
+        spatial_grid = self.buffers[0]["spatial_grid"]
+        particle_count = self.buffers[0]["particle_count"]
+
+        errors = 0
+        for i in range(particle_count):
+            if not particles["active"][i]:
+                continue
+
+            x = int(particles["x"][i])
+            y = int(particles["y"][i])
+
+            # Check if particle is where it thinks it is
+            if 0 <= x < self.grid_width and 0 <= y < self.grid_height:
+                occupant = spatial_grid[x, y]
+                if occupant != i:
+                    errors += 1
+                    Logger.error(
+                        f"DESYNC: Particle {i} at ({x},{y}) but grid says {occupant}"
+                    )
+
+        # Check reverse - grid points to valid particles
+        for x in range(self.grid_width):
+            for y in range(self.grid_height):
+                idx = spatial_grid[x, y]
+                if idx != -1 and idx < particle_count:
+                    if particles["active"][idx]:
+                        px = int(particles["x"][idx])
+                        py = int(particles["y"][idx])
+                        if px != x or py != y:
+                            errors += 1
+                            Logger.error(
+                                f"DESYNC: Grid[{x},{y}] points to particle {idx} but it's at ({px},{py})"
+                            )
+
+        if errors > 0:
+            Logger.critical(f"Found {errors} spatial grid desyncs!")
+        return errors
